@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ADMI — Course Economics Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --bg-panel: #ffffff;
+    --ink: #111111;
+    --ink-soft: #4a4a4a;
+    --ink-mute: #8a8a8a;
+    --rule: #e5e1d8;
+    --rule-strong: #111111;
+    --accent: #c8341f;      /* deep vermilion — decisive accent */
+    --accent-2: #124734;    /* forest — secondary */
+    --amber: #c88b1f;
+    --green: #2f7a4d;
+    --red:   #c8341f;
+    --grid: #eeeae0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'tnum' 1; }
+  .serif { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
+
+  /* ============ TOP BANNER ============ */
+  .banner {
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 22px 40px 18px;
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .banner-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .title em { font-style: italic; font-weight: 400; color: var(--ink-soft); }
+  .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-mute);
+    margin-top: 4px;
+  }
+
+  /* toggle */
+  .toggle-group { display: inline-flex; border: 1px solid var(--rule-strong); }
+  .toggle-group button {
+    background: transparent; border: 0; padding: 9px 20px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+    color: var(--ink); transition: all .15s;
+  }
+  .toggle-group button.active { background: var(--ink); color: var(--bg); }
+  .toggle-group button:hover:not(.active) { background: var(--rule); }
+
+  /* ============ SLIDERS TRAY ============ */
+  .sliders-tray {
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 40px;
+    background: var(--bg);
+    display: grid;
+    grid-template-columns: 180px 1fr auto;
+    gap: 28px;
+    align-items: center;
+  }
+  .sliders-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-mute);
+    border-left: 2px solid var(--accent); padding-left: 10px;
+  }
+  .sliders-label strong { display: block; color: var(--ink); font-size: 12px; margin-bottom: 2px; }
+  .sliders-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 20px;
+  }
+  .slider-item { display: flex; flex-direction: column; gap: 4px; }
+  .slider-item .name {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-soft); font-weight: 600;
+  }
+  .slider-item input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
+    background: var(--ink); outline: none; cursor: pointer;
+  }
+  .slider-item input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; background: var(--accent); border: 0;
+    border-radius: 50%; cursor: pointer;
+  }
+  .slider-item input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; background: var(--accent); border: 0;
+    border-radius: 50%; cursor: pointer;
+  }
+  .slider-item .val {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink);
+    display: flex; justify-content: space-between;
+  }
+  .slider-item .val .pct { font-weight: 600; }
+  .slider-item .val .pct.neg { color: var(--green); }
+  .slider-item .val .pct.pos { color: var(--red); }
+  button.reset {
+    border: 1px solid var(--ink); background: transparent;
+    padding: 9px 16px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    cursor: pointer; color: var(--ink);
+  }
+  button.reset:hover { background: var(--ink); color: var(--bg); }
+
+  /* ============ MAIN ============ */
+  main {
+    padding: 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  section { margin-bottom: 56px; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 22px;
+  }
+  .section-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .section-head h2 .num {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 500;
+    font-size: 11px; color: var(--accent); letter-spacing: 0.2em;
+    display: inline-block; margin-right: 14px; vertical-align: middle;
+  }
+  .section-head .caption {
+    font-size: 12px; color: var(--ink-soft); max-width: 520px; text-align: right;
+  }
+
+  /* ============ KPI TILES ============ */
+  .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; border: 1px solid var(--rule-strong); }
+  .kpi {
+    padding: 20px 22px;
+    border-right: 1px solid var(--rule-strong);
+    background: var(--bg-panel);
+    position: relative;
+  }
+  .kpi:last-child { border-right: 0; }
+  .kpi .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 12px;
+  }
+  .kpi .value {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-size: 30px; letter-spacing: -0.02em; line-height: 1;
+  }
+  .kpi .value .unit { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-mute); font-weight: 400; margin-left: 4px; }
+  .kpi .sub {
+    margin-top: 8px; font-size: 11px; color: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .kpi .sub .delta { font-weight: 600; }
+  .kpi .sub .delta.pos { color: var(--green); }
+  .kpi .sub .delta.neg { color: var(--red); }
+
+  /* ============ SCORECARD ============ */
+  .scorecard-wrap {
+    background: var(--bg-panel);
+    border: 1px solid var(--rule-strong);
+  }
+  table.scorecard {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  table.scorecard th {
+    text-align: left;
+    padding: 14px 14px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 600;
+    border-bottom: 1px solid var(--ink);
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  table.scorecard th:hover { color: var(--ink); }
+  table.scorecard th .arr { color: var(--accent); margin-left: 4px; opacity: 0; }
+  table.scorecard th.sort-asc .arr,
+  table.scorecard th.sort-desc .arr { opacity: 1; }
+  table.scorecard td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+  }
+  table.scorecard tr:hover td { background: #faf8f3; }
+  table.scorecard td.prog {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 240px;
+  }
+  table.scorecard td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    margin-left: 6px;
+    border: 1px solid var(--ink);
+  }
+  .badge.diploma { background: var(--ink); color: var(--bg); }
+  .badge.certificate { background: transparent; color: var(--ink); }
+  .score-bar {
+    display: inline-block;
+    width: 60px; height: 8px;
+    background: var(--rule);
+    vertical-align: middle;
+    margin-right: 8px;
+    position: relative;
+  }
+  .score-bar > div { height: 100%; background: var(--green); }
+  .score-bar.amber > div { background: var(--amber); }
+  .score-bar.red > div { background: var(--red); }
+
+  .safety { display: inline-flex; align-items: center; gap: 6px; }
+  .safety .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .safety .dot.green { background: var(--green); }
+  .safety .dot.amber { background: var(--amber); }
+  .safety .dot.red { background: var(--red); }
+
+  /* ============ CHARTS ============ */
+  .chart-row { display: grid; gap: 24px; }
+  .chart-row.two { grid-template-columns: 1fr 1fr; }
+  .chart-row.aside { grid-template-columns: 2fr 1fr; }
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--rule-strong);
+    padding: 22px;
+  }
+  .panel h3 {
+    margin: 0 0 4px 0;
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px;
+  }
+  .panel .note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 16px;
+  }
+  .panel .chart-holder { position: relative; height: 320px; }
+
+  /* ============ PROGRAM SELECT ============ */
+  select.program-picker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--ink);
+    background: var(--bg-panel);
+    padding: 7px 12px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  select.program-picker:focus { outline: none; border-color: var(--accent); }
+
+  /* hybrid section controls */
+  .hybrid-sliders {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 16px 22px; margin-bottom: 20px; padding: 16px 20px;
+    background: var(--bg); border: 1px dashed var(--ink-mute);
+  }
+  .hybrid-sliders .slider-item .name { color: var(--ink); }
+  .hybrid-sliders input[type=range]::-webkit-slider-thumb { background: var(--accent-2); }
+  .hybrid-sliders input[type=range]::-moz-range-thumb { background: var(--accent-2); }
+
+  .compare-kpi-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0; border: 1px solid var(--rule-strong); margin-bottom: 20px;
+  }
+  .compare-kpi {
+    padding: 18px 22px;
+    border-right: 1px solid var(--rule-strong);
+    background: var(--bg-panel);
+  }
+  .compare-kpi:last-child { border-right: 0; }
+  .compare-kpi .label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute);
+  }
+  .compare-kpi .pair {
+    display: flex; align-items: baseline; gap: 20px; margin-top: 10px;
+  }
+  .compare-kpi .item { flex: 1; }
+  .compare-kpi .item .name {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .compare-kpi .item .v {
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .compare-kpi .delta-pill {
+    display: inline-block; padding: 3px 8px; font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    background: var(--ink); color: var(--bg); margin-top: 8px;
+  }
+  .compare-kpi .delta-pill.pos { background: var(--green); }
+  .compare-kpi .delta-pill.neg { background: var(--red); }
+
+  /* footer */
+  footer {
+    padding: 28px 40px; border-top: 1px solid var(--rule-strong);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute);
+    display: flex; justify-content: space-between; gap: 20px;
+  }
+
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .kpi { border-bottom: 1px solid var(--rule-strong); }
+    .kpi:nth-child(3n) { border-right: 0; }
+    .sliders-grid { grid-template-columns: repeat(4, 1fr); }
+    .hybrid-sliders { grid-template-columns: repeat(4, 1fr); }
+    .chart-row.two, .chart-row.aside { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    main { padding: 20px; }
+    .banner, .sliders-tray, footer { padding-left: 20px; padding-right: 20px; }
+    .sliders-tray { grid-template-columns: 1fr; }
+    .sliders-grid { grid-template-columns: repeat(2, 1fr); }
+    .hybrid-sliders { grid-template-columns: repeat(2, 1fr); }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi:nth-child(3n) { border-right: 1px solid var(--rule-strong); }
+    .kpi:nth-child(2n) { border-right: 0; }
+    .compare-kpi-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-row">
+    <div>
+      <div class="title">ADMI <em>— Course Economics</em></div>
+      <div class="subtitle">Per-Semester Unit Economics · Scenario Explorer · Values in KSH</div>
+    </div>
+    <div class="toggle-group" id="scenarioToggle">
+      <button data-scenario="In-Person" class="active">In-Person</button>
+      <button data-scenario="Hybrid">Hybrid</button>
+    </div>
+  </div>
+</div>
+
+<div class="sliders-tray">
+  <div class="sliders-label">
+    <strong>Cost Adjusters</strong>
+    Global — applies everywhere
+  </div>
+  <div class="sliders-grid" id="globalSliders"></div>
+  <button class="reset" id="resetGlobal">Reset</button>
+</div>
+
+<main>
+
+  <!-- ============ SECTION 1: P&L KPIs ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">01</span>P&amp;L Overview</h2>
+      <div class="caption">Per-semester totals across all 14 programs. Reflects current slider positions.</div>
+    </div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </section>
+
+  <!-- ============ SECTION 2: COURSE SCORECARD ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">02</span>Course Scorecard</h2>
+      <div class="caption">All 14 programs ranked by Course Health Score — weighted composite of GP margin, safety margin vs. breakeven, and contribution to total GP. Click any column to sort.</div>
+    </div>
+    <div class="scorecard-wrap">
+      <table class="scorecard" id="scorecardTable">
+        <thead>
+          <tr>
+            <th data-sort="score" class="sort-desc">Health Score<span class="arr">↓</span></th>
+            <th data-sort="name">Program<span class="arr"></span></th>
+            <th data-sort="rev_per" class="num" style="text-align:right">Rev / Student<span class="arr"></span></th>
+            <th data-sort="gp_per" class="num" style="text-align:right">GP / Student<span class="arr"></span></th>
+            <th data-sort="margin" class="num" style="text-align:right">GP Margin<span class="arr"></span></th>
+            <th data-sort="enroll" class="num" style="text-align:right">Enrolled<span class="arr"></span></th>
+            <th data-sort="breakeven" class="num" style="text-align:right">Breakeven<span class="arr"></span></th>
+            <th data-sort="safety" class="num" style="text-align:right">Safety<span class="arr"></span></th>
+            <th data-sort="gp_total" class="num" style="text-align:right">GP Contrib.<span class="arr"></span></th>
+            <th data-sort="gp_pct" class="num" style="text-align:right">% of GP<span class="arr"></span></th>
+          </tr>
+        </thead>
+        <tbody id="scorecardBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: ENROLLMENT SENSITIVITY ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">03</span>Enrollment Sensitivity</h2>
+      <div class="caption">Program-level profit as a function of enrollment. Vertical line = breakeven. Dot = current enrollment.</div>
+    </div>
+    <div class="chart-row aside">
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+          <div>
+            <h3>Profit vs. Enrollment</h3>
+            <div class="note">Contribution margin basis · COGS-only breakeven</div>
+          </div>
+          <select class="program-picker" id="programPicker"></select>
+        </div>
+        <div class="chart-holder"><canvas id="sensitivityChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3 id="progStatsName">—</h3>
+        <div class="note">Program stats</div>
+        <div id="progStats" style="margin-top: 12px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4: IN-PERSON vs HYBRID ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">04</span>In-Person vs. Hybrid</h2>
+      <div class="caption">Apply independent cost multipliers to Hybrid to model planning assumptions. In-Person baseline stays fixed.</div>
+    </div>
+    <div class="hybrid-sliders" id="hybridSliders"></div>
+    <div class="compare-kpi-grid" id="compareKpiGrid"></div>
+    <div class="chart-row two">
+      <div class="panel">
+        <h3>Per-Program Gross Profit: In-Person vs. Hybrid</h3>
+        <div class="note">Bar chart · KSH per semester</div>
+        <div class="chart-holder"><canvas id="compareBarChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Hybrid Delta by Program</h3>
+        <div class="note">Change in GP · positive = Hybrid better</div>
+        <div class="chart-holder"><canvas id="deltaChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 5: COST STRUCTURE ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">05</span>Cost Structure by Program</h2>
+      <div class="caption">Which programs are staff-heavy vs. equipment-heavy. Identifies where specific cost-cut levers apply.</div>
+    </div>
+    <div class="panel">
+      <h3>COGS Composition (Stacked, % of Revenue)</h3>
+      <div class="note">Shows COGS categories as a share of each program's revenue</div>
+      <div class="chart-holder" style="height: 420px;"><canvas id="stackChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 6: WATERFALL ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">06</span>Revenue → Operating Profit</h2>
+      <div class="caption">Company-wide bridge from top-line revenue down to operating profit, per semester.</div>
+    </div>
+    <div class="panel">
+      <h3>P&amp;L Waterfall</h3>
+      <div class="note">Per semester · KSH millions</div>
+      <div class="chart-holder" style="height: 420px;"><canvas id="waterfallChart"></canvas></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>ADMI Course Economics Dashboard · v1.0</span>
+  <span id="lastUpdated"></span>
+</footer>
+
+<script>
+/* =====================================================
+   DATA INJECTION POINT — replaced by build script
+   ===================================================== */
+const RAW_DATA = {"In-Person": {"scenario": "In-Person", "programs": [{"name": "Digital Content Creation Diploma", "revenue_lines": {"Course Price": 36250.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 5000.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 28000.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 5.0, "total_revenue_sheet": 280000.0, "total_cogs_sheet": 129847.36190476191, "type": "Diploma"}, {"name": "Music Production Diploma", "revenue_lines": {"Course Price": 36250.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 5000.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 547566.6666666666, "Rent and repairs": 128743.034017335, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 42000.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 7.5, "total_revenue_sheet": 420000.0, "total_cogs_sheet": 1079244.015844268, "type": "Diploma"}, {"name": "Sound Engineering Diploma", "revenue_lines": {"Course Price": 36250.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 5000.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 401991.6666666667, "Rent and repairs": 520095.12877245195, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 42000.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 7.5, "total_revenue_sheet": 420000.0, "total_cogs_sheet": 1325021.110599385, "type": "Diploma"}, {"name": "Graphic Design Diploma", "revenue_lines": {"Course Price": 29000.0, "Internship Fee": 7000.0, "Application Fee": 400.0, "Insurance Fee": 1200.0, "Graduation Fee": 1200.0, "Equipment Fee": 4000.0, "Accreditation onboarding": 2000.0}, "cogs_lines": {"Direct staff costs": 236375.0, "Rent and repairs": 154469.3669394841, "Equipment costs": 98132.22350088565, "Compute and SW": 323807.3333333333, "Students' accreditation": 53760.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 12.0, "total_revenue_sheet": 537600.0, "total_cogs_sheet": 968391.285678465, "type": "Diploma"}, {"name": "Film and Television Production Diploma", "revenue_lines": {"Course Price": 36250.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 5000.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 1454250.0, "Rent and repairs": 608596.6838754873, "Equipment costs": 607234.8852412076, "Compute and SW": 598861.7916666666, "Students' accreditation": 84000.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 15.0, "total_revenue_sheet": 840000.0, "total_cogs_sheet": 3454790.722688123, "type": "Diploma"}, {"name": "Animation & Motion Graphics Diploma", "revenue_lines": {"Course Price": 36250.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 5000.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 1077066.6666666667, "Rent and repairs": 761751.8918172166, "Equipment costs": 98132.22350088565, "Compute and SW": 261342.46666666667, "Students' accreditation": 28000.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 5.0, "total_revenue_sheet": 280000.0, "total_cogs_sheet": 2328140.6105561974, "type": "Diploma"}, {"name": "AI Adoption & Digital Transformation Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 143550.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 9.0, "total_revenue_sheet": 1435500.0, "total_cogs_sheet": 245397.36190476193, "type": "Certificate"}, {"name": "Multimedia Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 199499.73033712755, "Equipment costs": 603507.0214521898, "Compute and SW": 173530.66666666666, "Students' accreditation": 303050.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 19.0, "total_revenue_sheet": 3030500.0, "total_cogs_sheet": 1381434.780360746, "type": "Certificate"}, {"name": "Photography Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 23466.666666666668, "Rent and repairs": 146562.13907163744, "Equipment costs": 262036.8396524864, "Compute and SW": 256842.33333333334, "Students' accreditation": 143550.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 9.0, "total_revenue_sheet": 1435500.0, "total_cogs_sheet": 934305.3406288858, "type": "Certificate"}, {"name": "Music Production and Sound Engineering Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 949558.3333333334, "Rent and repairs": 148789.5272034252, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 287100.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 2871000.0, "total_cogs_sheet": 1746382.175697025, "type": "Certificate"}, {"name": "Video Production Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 607234.8852412076, "Compute and SW": 0.0, "Students' accreditation": 382800.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 24.0, "total_revenue_sheet": 3828000.0, "total_cogs_sheet": 1091882.2471459694, "type": "Certificate"}, {"name": "Graphic Design Certificate", "revenue_lines": {"Course Price": 50000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 236375.0, "Rent and repairs": 154469.3669394841, "Equipment costs": 98132.22350088565, "Compute and SW": 323807.3333333333, "Students' accreditation": 200700.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 2007000.0, "total_cogs_sheet": 1115331.2856784652, "type": "Certificate"}, {"name": "Digital Marketing Certificate", "revenue_lines": {"Course Price": 50000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 197633.33333333334, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 200700.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 2007000.0, "total_cogs_sheet": 500180.6952380953, "type": "Certificate"}, {"name": "Data Analytics and Visualization Certificate", "revenue_lines": {"Course Price": 98000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 117309.10827415761, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 127600.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 8.0, "total_revenue_sheet": 1276000.0, "total_cogs_sheet": 346756.47017891955, "type": "Certificate"}], "opex": {"Administrative Personnel Costs": 10399284.020000001, "Insurance Cost": 210277.20000000004, "Compliance Cost": 132500.0, "Professional Fees": 135598.33333333334, "Directors fees": 1020128.62, "Office Support expenses": 2409094.14, "Rent and repairs (fixed)": 2747720.8486276455, "Compute and SW (fixed)": 732773.6666666666, "Equipment costs (fixed)": 0.0, "Direct staff costs (fixed)": 1299997.6666666667, "Marketing and advertisement": 0.0, "Academics - other (fixed)": 5223338.726666667, "Provision for Bad Debt": 103340.5}}, "Hybrid": {"scenario": "Hybrid", "programs": [{"name": "Digital Content Creation Diploma", "revenue_lines": {"Course Price": 17000.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 2500.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 17125.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 5.0, "total_revenue_sheet": 171250.0, "total_cogs_sheet": 118972.36190476191, "type": "Diploma"}, {"name": "Music Production Diploma", "revenue_lines": {"Course Price": 25000.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 2500.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 547566.6666666666, "Rent and repairs": 128743.034017335, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 31687.5, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 7.5, "total_revenue_sheet": 316875.0, "total_cogs_sheet": 1068931.515844268, "type": "Diploma"}, {"name": "Sound Engineering Diploma", "revenue_lines": {"Course Price": 25000.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 2500.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 401991.6666666667, "Rent and repairs": 520095.12877245195, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 31687.5, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 7.5, "total_revenue_sheet": 316875.0, "total_cogs_sheet": 1314708.610599385, "type": "Diploma"}, {"name": "Graphic Design Diploma", "revenue_lines": {"Course Price": 13600.0, "Internship Fee": 7000.0, "Application Fee": 400.0, "Insurance Fee": 1200.0, "Graduation Fee": 1200.0, "Equipment Fee": 2000.0, "Accreditation onboarding": 2000.0}, "cogs_lines": {"Direct staff costs": 236375.0, "Rent and repairs": 154469.3669394841, "Equipment costs": 98132.22350088565, "Compute and SW": 323807.3333333333, "Students' accreditation": 32880.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 12.0, "total_revenue_sheet": 328800.0, "total_cogs_sheet": 947511.285678465, "type": "Diploma"}, {"name": "Film and Television Production Diploma", "revenue_lines": {"Course Price": 25000.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 2500.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 1454250.0, "Rent and repairs": 608596.6838754873, "Equipment costs": 607234.8852412076, "Compute and SW": 598861.7916666666, "Students' accreditation": 63375.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 15.0, "total_revenue_sheet": 633750.0, "total_cogs_sheet": 3434165.722688123, "type": "Diploma"}, {"name": "Animation & Motion Graphics Diploma", "revenue_lines": {"Course Price": 17000.0, "Internship Fee": 8750.0, "Application Fee": 500.0, "Insurance Fee": 1500.0, "Graduation Fee": 1500.0, "Equipment Fee": 2500.0, "Accreditation onboarding": 2500.0}, "cogs_lines": {"Direct staff costs": 1077066.6666666667, "Rent and repairs": 761751.8918172166, "Equipment costs": 98132.22350088565, "Compute and SW": 261342.46666666667, "Students' accreditation": 17125.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 5.0, "total_revenue_sheet": 171250.0, "total_cogs_sheet": 2317265.6105561974, "type": "Diploma"}, {"name": "AI Adoption & Digital Transformation Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 98550.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 9.0, "total_revenue_sheet": 985500.0, "total_cogs_sheet": 200397.36190476193, "type": "Certificate"}, {"name": "Multimedia Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 199499.73033712755, "Equipment costs": 603507.0214521898, "Compute and SW": 173530.66666666666, "Students' accreditation": 208050.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 19.0, "total_revenue_sheet": 2080500.0, "total_cogs_sheet": 1286434.780360746, "type": "Certificate"}, {"name": "Photography Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 23466.666666666668, "Rent and repairs": 146562.13907163744, "Equipment costs": 262036.8396524864, "Compute and SW": 256842.33333333334, "Students' accreditation": 98550.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 9.0, "total_revenue_sheet": 985500.0, "total_cogs_sheet": 889305.3406288858, "type": "Certificate"}, {"name": "Music Production and Sound Engineering Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 949558.3333333334, "Rent and repairs": 148789.5272034252, "Equipment costs": 9082.661588837685, "Compute and SW": 250004.29166666666, "Students' accreditation": 197100.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 1971000.0, "total_cogs_sheet": 1656382.175697025, "type": "Certificate"}, {"name": "Video Production Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 0.0, "Equipment costs": 607234.8852412076, "Compute and SW": 0.0, "Students' accreditation": 262800.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 24.0, "total_revenue_sheet": 2628000.0, "total_cogs_sheet": 971882.2471459694, "type": "Certificate"}, {"name": "Graphic Design Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 236375.0, "Rent and repairs": 154469.3669394841, "Equipment costs": 98132.22350088565, "Compute and SW": 323807.3333333333, "Students' accreditation": 197100.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 1971000.0, "total_cogs_sheet": 1111731.2856784652, "type": "Certificate"}, {"name": "Digital Marketing Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 197633.33333333334, "Rent and repairs": 0.0, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 197100.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 18.0, "total_revenue_sheet": 1971000.0, "total_cogs_sheet": 496580.6952380953, "type": "Certificate"}, {"name": "Data Analytics and Visualization Certificate", "revenue_lines": {"Course Price": 48000.0, "Internship Fee": 35000.0, "Application Fee": 2000.0, "Insurance Fee": 2500.0, "Graduation Fee": 6000.0, "Equipment Fee": 10000.0, "Accreditation onboarding": 6000.0}, "cogs_lines": {"Direct staff costs": 0.0, "Rent and repairs": 117309.10827415761, "Equipment costs": 0.0, "Compute and SW": 0.0, "Students' accreditation": 87600.0, "Other - academics": 101847.36190476191, "Marketing and advertisements": 0.0}, "enrollment": 8.0, "total_revenue_sheet": 876000.0, "total_cogs_sheet": 306756.47017891955, "type": "Certificate"}], "opex": {"Administrative Personnel Costs": 10399284.020000001, "Insurance Cost": 210277.20000000004, "Compliance Cost": 132500.0, "Professional Fees": 135598.33333333334, "Directors fees": 1020128.62, "Office Support expenses": 2409094.14, "Rent and repairs (fixed)": 2747720.8486276455, "Compute and SW (fixed)": 732773.6666666666, "Equipment costs (fixed)": 0.0, "Direct staff costs (fixed)": 1299997.6666666667, "Marketing and advertisement": 0.0, "Academics - other (fixed)": 5223338.726666667, "Provision for Bad Debt": 77036.5}}};
+
+/* =====================================================
+   DASHBOARD LOGIC
+   ===================================================== */
+
+// Chart.js global defaults
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#4a4a4a';
+Chart.defaults.borderColor = '#eeeae0';
+
+// Cost categories for sliders (matches COGS buckets)
+const COST_KEYS = [
+  'Direct staff costs',
+  'Rent and repairs',
+  'Equipment costs',
+  'Compute and SW',
+  "Students' accreditation",
+  'Other - academics',
+  'Marketing and advertisements',
+];
+
+// Short labels for slider UI
+const COST_SHORT = {
+  'Direct staff costs': 'Staff',
+  'Rent and repairs': 'Rent',
+  'Equipment costs': 'Equipment',
+  'Compute and SW': 'Compute/SW',
+  "Students' accreditation": 'Accred.',
+  'Other - academics': 'Academics',
+  'Marketing and advertisements': 'Marketing',
+};
+
+// OpEx keys that are elastic to the same cost categories
+const OPEX_ELASTIC = {
+  'Rent and repairs (fixed)':      'Rent and repairs',
+  'Compute and SW (fixed)':        'Compute and SW',
+  'Equipment costs (fixed)':       'Equipment costs',
+  'Direct staff costs (fixed)':    'Direct staff costs',
+  'Academics - other (fixed)':     'Other - academics',
+  'Marketing and advertisement':   'Marketing and advertisements',
+};
+
+// Dashboard state
+const state = {
+  scenario: 'In-Person',
+  globalMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  hybridMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  sort: { key: 'score', dir: 'desc' },
+  pickedProgram: null,
+};
+
+// ------------- NUMBER FORMATTERS -------------
+const fmtInt = new Intl.NumberFormat('en-US');
+function fmtKSH(v) {
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return (v/1e9).toFixed(2) + 'B';
+  if (abs >= 1e6) return (v/1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (v/1e3).toFixed(1) + 'K';
+  return fmtInt.format(Math.round(v));
+}
+function fmtPct(v, dp=1) { return (v*100).toFixed(dp) + '%'; }
+function fmtSigned(v) { return (v >= 0 ? '+' : '') + fmtKSH(v); }
+
+// ------------- COMPUTE -------------
+function computeProgram(p, mult) {
+  const rev = p.total_revenue_sheet;
+  let cogs = 0;
+  const cogsByCat = {};
+  for (const k of COST_KEYS) {
+    const adj = (p.cogs_lines[k] || 0) * (mult[k] || 1);
+    cogsByCat[k] = adj;
+    cogs += adj;
+  }
+  const gp = rev - cogs;
+  const margin = rev > 0 ? gp/rev : 0;
+  const revPer = p.enrollment > 0 ? rev/p.enrollment : 0;
+  const gpPer = p.enrollment > 0 ? gp/p.enrollment : 0;
+  const cogsPer = p.enrollment > 0 ? cogs/p.enrollment : 0;
+  // Breakeven: smallest N such that N * revPer > N * cogsPer (i.e. any N if margin>0)
+  // But COGS includes fixed-per-program as well as per-student. Here all costs are
+  // at current enrollment, so scaling assumes costs scale linearly with N.
+  // Contribution-margin breakeven then = 0 if rev>cogs... which isn't useful.
+  // MORE USEFUL: fixed portion vs variable portion. We approximate by treating
+  // Rent, Equipment, Compute, Staff as semi-fixed at current spend level, and
+  // Accreditation + Marketing as per-student. Breakeven = fixed / (revPer - variablePer).
+  const FIXED_KEYS = ['Direct staff costs','Rent and repairs','Equipment costs','Compute and SW','Other - academics'];
+  const VAR_KEYS   = ["Students' accreditation",'Marketing and advertisements'];
+  const fixedTotal = FIXED_KEYS.reduce((s,k) => s + cogsByCat[k], 0);
+  const varPer = p.enrollment > 0 ? VAR_KEYS.reduce((s,k) => s + cogsByCat[k], 0) / p.enrollment : 0;
+  const contribPer = revPer - varPer;
+  const breakeven = contribPer > 0 ? Math.ceil(fixedTotal / contribPer) : Infinity;
+  const safety = breakeven > 0 && breakeven !== Infinity ? p.enrollment / breakeven : null;
+
+  return { p, rev, cogs, cogsByCat, gp, margin, revPer, gpPer, cogsPer,
+           fixedTotal, varPer, contribPer, breakeven, safety };
+}
+
+function computeScenario(scenarioKey, globalMult, hybridMultOverride=null) {
+  const s = RAW_DATA[scenarioKey];
+  const effMult = {};
+  for (const k of COST_KEYS) {
+    effMult[k] = globalMult[k] * (scenarioKey === 'Hybrid' && hybridMultOverride ? hybridMultOverride[k] : 1);
+  }
+  const rows = s.programs.map(p => computeProgram(p, effMult));
+  const totalRev = rows.reduce((a,r) => a + r.rev, 0);
+  const totalCogs = rows.reduce((a,r) => a + r.cogs, 0);
+  const totalGP = totalRev - totalCogs;
+  // OpEx: apply elastic mults
+  const opex = {};
+  let opexTotal = 0;
+  for (const [k, v] of Object.entries(s.opex)) {
+    const catKey = OPEX_ELASTIC[k];
+    const m = catKey ? effMult[catKey] : 1;
+    opex[k] = v * m;
+    opexTotal += opex[k];
+  }
+  // Provision for Bad Debt should track revenue (0.5%)
+  // It's already in opex — but re-scale to current revenue:
+  if ('Provision for Bad Debt' in opex) {
+    const newProv = totalRev * 0.005;
+    opexTotal = opexTotal - opex['Provision for Bad Debt'] + newProv;
+    opex['Provision for Bad Debt'] = newProv;
+  }
+  const opProfit = totalGP - opexTotal;
+  return { rows, totalRev, totalCogs, totalGP,
+           gpMargin: totalRev > 0 ? totalGP/totalRev : 0,
+           opex, opexTotal, opProfit,
+           opMargin: totalRev > 0 ? opProfit/totalRev : 0,
+           totalEnroll: rows.reduce((a,r) => a + r.p.enrollment, 0) };
+}
+
+// Course Health Score (composite)
+function healthScore(row, totalGP) {
+  // Three components normalized to 0-1:
+  // 1. Margin (0 at 0%, 1 at 50%)
+  const marginScore = Math.max(0, Math.min(1, row.margin / 0.5));
+  // 2. Safety margin (0 at <=1x, 1 at >=3x)
+  const safetyScore = row.safety === null ? 0 :
+    (row.safety === Infinity ? 1 : Math.max(0, Math.min(1, (row.safety - 1) / 2)));
+  // 3. GP contribution share (0 at 0%, 1 at 15%)
+  const gpShare = totalGP > 0 ? row.gp / totalGP : 0;
+  const contribScore = Math.max(0, Math.min(1, gpShare / 0.15));
+  // Weighted: 40% margin, 40% safety, 20% contribution
+  return 0.4 * marginScore + 0.4 * safetyScore + 0.2 * contribScore;
+}
+
+// ------------- SLIDERS (global) -------------
+function buildGlobalSliders() {
+  const host = document.getElementById('globalSliders');
+  host.innerHTML = '';
+  COST_KEYS.forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'slider-item';
+    div.innerHTML = `
+      <span class="name">${COST_SHORT[k]}</span>
+      <input type="range" min="0" max="200" value="100" data-key="${k}" data-slider="global">
+      <div class="val"><span>${COST_SHORT[k]}</span><span class="pct" data-show="${k}">0%</span></div>
+    `;
+    host.appendChild(div);
+  });
+  host.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const v = parseInt(e.target.value) / 100;
+      state.globalMult[key] = v;
+      updatePctLabel('globalSliders', key, v);
+      renderAll();
+    });
+  });
+}
+
+function updatePctLabel(host, key, mult) {
+  const span = document.querySelector(`#${host} [data-show="${key}"]`);
+  if (!span) return;
+  const delta = (mult - 1) * 100;
+  span.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
+  span.classList.remove('pos', 'neg');
+  if (delta > 0) span.classList.add('pos');
+  else if (delta < 0) span.classList.add('neg');
+}
+
+function buildHybridSliders() {
+  const host = document.getElementById('hybridSliders');
+  host.innerHTML = '';
+  COST_KEYS.forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'slider-item';
+    div.innerHTML = `
+      <span class="name">Hybrid · ${COST_SHORT[k]}</span>
+      <input type="range" min="0" max="200" value="100" data-key="${k}" data-slider="hybrid">
+      <div class="val"><span>${COST_SHORT[k]}</span><span class="pct" data-show-h="${k}">0%</span></div>
+    `;
+    host.appendChild(div);
+  });
+  host.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const v = parseInt(e.target.value) / 100;
+      state.hybridMult[key] = v;
+      const span = document.querySelector(`[data-show-h="${key}"]`);
+      const delta = (v - 1) * 100;
+      span.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
+      span.classList.remove('pos','neg');
+      if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
+      renderCompareSection();
+    });
+  });
+}
+
+// ------------- RENDER: KPI TILES -------------
+function renderKPIs() {
+  const sc = computeScenario(state.scenario, state.globalMult);
+  const grid = document.getElementById('kpiGrid');
+  const revPerStudent = sc.totalEnroll > 0 ? sc.totalRev / sc.totalEnroll : 0;
+  const gpPerStudent  = sc.totalEnroll > 0 ? sc.totalGP  / sc.totalEnroll : 0;
+
+  const tiles = [
+    { label: 'Revenue', value: fmtKSH(sc.totalRev), unit: 'KSH', sub: `Across ${sc.rows.length} programs` },
+    { label: 'Gross Profit', value: fmtKSH(sc.totalGP), unit: 'KSH',
+      sub: `<span class="delta">${fmtPct(sc.gpMargin)}</span> margin` },
+    { label: 'Operating Profit', value: fmtKSH(sc.opProfit), unit: 'KSH',
+      sub: `<span class="delta ${sc.opProfit >= 0 ? 'pos':'neg'}">${fmtPct(sc.opMargin)}</span> op margin` },
+    { label: 'Total Enrolled', value: fmtInt.format(sc.totalEnroll), unit: 'students',
+      sub: 'Per semester' },
+    { label: 'Revenue / Student', value: fmtKSH(revPerStudent), unit: 'KSH',
+      sub: 'Blended average' },
+    { label: 'GP / Student', value: fmtKSH(gpPerStudent), unit: 'KSH',
+      sub: `<span class="delta">${fmtPct(gpPerStudent / (revPerStudent||1))}</span> of rev` },
+  ];
+  grid.innerHTML = tiles.map(t => `
+    <div class="kpi">
+      <div class="label">${t.label}</div>
+      <div class="value">${t.value}<span class="unit">${t.unit}</span></div>
+      <div class="sub">${t.sub}</div>
+    </div>`).join('');
+}
+
+// ------------- RENDER: SCORECARD -------------
+let scorecardData = [];
+function renderScorecard() {
+  const sc = computeScenario(state.scenario, state.globalMult);
+  scorecardData = sc.rows.map(r => ({
+    name: r.p.name,
+    type: r.p.type,
+    rev_per: r.revPer,
+    gp_per: r.gpPer,
+    margin: r.margin,
+    enroll: r.p.enrollment,
+    breakeven: r.breakeven,
+    safety: r.safety,
+    gp_total: r.gp,
+    gp_pct: sc.totalGP > 0 ? r.gp / sc.totalGP : 0,
+    score: healthScore(r, sc.totalGP),
+    _row: r,
+  }));
+  sortAndRenderScorecard();
+}
+
+function sortAndRenderScorecard() {
+  const { key, dir } = state.sort;
+  const rows = [...scorecardData].sort((a,b) => {
+    let av = a[key], bv = b[key];
+    if (av === Infinity) av = -1; // infinity breakeven = bad
+    if (bv === Infinity) bv = -1;
+    if (av === null) av = -1;
+    if (bv === null) bv = -1;
+    if (typeof av === 'string') return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+  const body = document.getElementById('scorecardBody');
+  body.innerHTML = rows.map(r => {
+    const scoreClass = r.score >= 0.65 ? '' : (r.score >= 0.35 ? 'amber' : 'red');
+    const safetyDot = r.safety === null ? 'red' :
+                      r.safety === Infinity ? 'green' :
+                      r.safety >= 1.5 ? 'green' :
+                      r.safety >= 1.0 ? 'amber' : 'red';
+    const safetyText = r.safety === null ? 'n/a' :
+                       r.safety === Infinity ? '∞' :
+                       r.safety.toFixed(2) + 'x';
+    const breakText = r.breakeven === Infinity ? '∞' : fmtInt.format(r.breakeven);
+    return `
+      <tr>
+        <td><span class="score-bar ${scoreClass}"><div style="width:${r.score*100}%"></div></span>${(r.score*100).toFixed(0)}</td>
+        <td class="prog">${r.name}<span class="badge ${r.type.toLowerCase()}">${r.type.charAt(0)}</span></td>
+        <td class="num">${fmtKSH(r.rev_per)}</td>
+        <td class="num" style="${r.gp_per < 0 ? 'color:var(--red)' : ''}">${fmtKSH(r.gp_per)}</td>
+        <td class="num" style="${r.margin < 0 ? 'color:var(--red);font-weight:600' : ''}">${fmtPct(r.margin)}</td>
+        <td class="num">${fmtInt.format(r.enroll)}</td>
+        <td class="num">${breakText}</td>
+        <td class="num"><span class="safety"><span class="dot ${safetyDot}"></span>${safetyText}</span></td>
+        <td class="num">${fmtKSH(r.gp_total)}</td>
+        <td class="num">${fmtPct(r.gp_pct)}</td>
+      </tr>`;
+  }).join('');
+
+  // header indicators
+  document.querySelectorAll('table.scorecard th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    const arr = th.querySelector('.arr');
+    if (th.dataset.sort === key) {
+      th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      arr.textContent = dir === 'asc' ? '↑' : '↓';
+    }
+  });
+}
+
+// header click sort
+document.querySelectorAll('table.scorecard th').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (state.sort.key === k) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+    else { state.sort.key = k; state.sort.dir = (k === 'name') ? 'asc' : 'desc'; }
+    sortAndRenderScorecard();
+  });
+});
+
+// ------------- RENDER: ENROLLMENT SENSITIVITY -------------
+let sensitivityChart = null;
+
+function populateProgramPicker() {
+  const host = document.getElementById('programPicker');
+  const sc = computeScenario(state.scenario, state.globalMult);
+  const progs = sc.rows.map(r => r.p.name).sort();
+  host.innerHTML = progs.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (!state.pickedProgram || !progs.includes(state.pickedProgram)) {
+    state.pickedProgram = progs[0];
+  }
+  host.value = state.pickedProgram;
+  host.onchange = () => { state.pickedProgram = host.value; renderSensitivity(); };
+}
+
+function renderSensitivity() {
+  const sc = computeScenario(state.scenario, state.globalMult);
+  const row = sc.rows.find(r => r.p.name === state.pickedProgram);
+  if (!row) return;
+
+  // curve: profit vs enrollment from 0 to max(current*2.5, breakeven*1.5, 100)
+  const current = row.p.enrollment;
+  const be = row.breakeven === Infinity ? current * 2 : row.breakeven;
+  const maxN = Math.max(current * 2.5, be * 1.5, 100);
+  const step = Math.max(1, Math.round(maxN / 80));
+  const xs = [], ys = [];
+  for (let n = 0; n <= maxN; n += step) {
+    const profit = n * (row.revPer - row.varPer) - row.fixedTotal;
+    xs.push(n); ys.push(profit);
+  }
+  const ctx = document.getElementById('sensitivityChart').getContext('2d');
+  if (sensitivityChart) sensitivityChart.destroy();
+  sensitivityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: xs,
+      datasets: [
+        {
+          label: 'Profit (KSH)',
+          data: ys,
+          borderColor: '#111111',
+          backgroundColor: 'rgba(200, 52, 31, 0.08)',
+          fill: true,
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.05,
+        },
+        {
+          label: 'Current',
+          data: xs.map(n => n === Math.round(current/step)*step ? (current * (row.revPer - row.varPer) - row.fixedTotal) : null),
+          borderColor: '#c8341f',
+          pointRadius: 0,
+          showLine: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: c => `N=${c.label} → ${fmtKSH(c.parsed.y)} KSH` }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Enrollment (# students)' },
+             grid: { color: '#eeeae0' },
+             ticks: { maxTicksLimit: 10 } },
+        y: { title: { display: true, text: 'Profit (KSH)' },
+             grid: { color: '#eeeae0' },
+             ticks: { callback: v => fmtKSH(v) } }
+      }
+    }
+  });
+
+  // Overlay breakeven & current markers using after-draw plugin (simple version via annotation lines)
+  // We'll do it with native Chart.js by drawing vertical line in datasets
+  const verticalLine = {
+    id: 'verticalLines',
+    afterDraw: chart => {
+      const {ctx, chartArea, scales} = chart;
+      const xScale = scales.x;
+      const yScale = scales.y;
+      // Zero line
+      if (yScale.min < 0 && yScale.max > 0) {
+        const y0 = yScale.getPixelForValue(0);
+        ctx.save();
+        ctx.strokeStyle = '#8a8a8a';
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y0); ctx.lineTo(chartArea.right, y0);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Breakeven vertical
+      if (row.breakeven !== Infinity && row.breakeven > 0 && row.breakeven <= maxN) {
+        const xBE = xScale.getPixelForValue(row.breakeven);
+        ctx.save();
+        ctx.strokeStyle = '#c8341f';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath();
+        ctx.moveTo(xBE, chartArea.top); ctx.lineTo(xBE, chartArea.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#c8341f';
+        ctx.font = 'bold 10px "IBM Plex Mono"';
+        ctx.fillText(`BE: ${row.breakeven}`, xBE + 4, chartArea.top + 12);
+        ctx.restore();
+      }
+      // Current enrollment marker
+      if (current <= maxN) {
+        const xCur = xScale.getPixelForValue(current);
+        const yCur = yScale.getPixelForValue(current * (row.revPer - row.varPer) - row.fixedTotal);
+        ctx.save();
+        ctx.fillStyle = '#124734';
+        ctx.beginPath(); ctx.arc(xCur, yCur, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#124734';
+        ctx.font = 'bold 10px "IBM Plex Mono"';
+        ctx.fillText(`Current: ${current}`, xCur + 8, yCur - 8);
+        ctx.restore();
+      }
+    }
+  };
+  // Register vertical-line plugin once globally
+  if (!window._vlPluginInstalled) {
+    Chart.register(verticalLine);
+    window._vlPluginInstalled = true;
+  }
+  sensitivityChart.update();
+
+  // Stats panel
+  const statsHost = document.getElementById('progStats');
+  document.getElementById('progStatsName').textContent = row.p.name;
+  const verdict = row.breakeven === Infinity ? 'Unprofitable at any scale' :
+                  row.safety >= 1.5 ? 'Comfortable margin' :
+                  row.safety >= 1.0 ? 'Near breakeven — watch' :
+                  'Below breakeven — losing money';
+  const verdictColor = row.breakeven === Infinity || row.safety < 1 ? 'var(--red)' :
+                       row.safety < 1.5 ? 'var(--amber)' : 'var(--green)';
+  statsHost.innerHTML = `
+    <table class="mono" style="width:100%; font-size:12px;">
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Type</td><td style="text-align:right">${row.p.type}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Enrollment</td><td style="text-align:right">${row.p.enrollment}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Revenue / student</td><td style="text-align:right">${fmtKSH(row.revPer)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Variable cost / student</td><td style="text-align:right">${fmtKSH(row.varPer)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Contribution / student</td><td style="text-align:right;font-weight:600">${fmtKSH(row.contribPer)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Fixed costs (allocated)</td><td style="text-align:right">${fmtKSH(row.fixedTotal)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Breakeven students</td><td style="text-align:right;font-weight:600">${row.breakeven === Infinity ? '∞' : row.breakeven}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">GP margin</td><td style="text-align:right;font-weight:600">${fmtPct(row.margin)}</td></tr>
+      <tr><td style="padding:8px 0 0;color:var(--ink-mute);border-top:1px solid var(--rule)">Verdict</td><td style="text-align:right;padding-top:8px;border-top:1px solid var(--rule);color:${verdictColor};font-weight:600">${verdict}</td></tr>
+    </table>
+  `;
+}
+
+// ------------- RENDER: COMPARE (In-Person vs Hybrid) -------------
+let compareBarChart = null, deltaChart = null;
+
+function renderCompareSection() {
+  const ipSC = computeScenario('In-Person', state.globalMult);
+  const hySC = computeScenario('Hybrid', state.globalMult, state.hybridMult);
+
+  // Compare KPIs
+  const compareHost = document.getElementById('compareKpiGrid');
+  function pair(label, ip, hy, fmt=fmtKSH, isPct=false) {
+    const delta = hy - ip;
+    const pct = ip !== 0 ? delta / Math.abs(ip) : 0;
+    const cls = delta > 0 ? 'pos' : (delta < 0 ? 'neg' : '');
+    const deltaText = isPct ? ((delta >= 0 ? '+' : '') + (delta*100).toFixed(1) + 'pp')
+                            : (fmtSigned(delta) + (isPct ? '' : ` (${(pct*100).toFixed(1)}%)`));
+    return `
+      <div class="compare-kpi">
+        <div class="label">${label}</div>
+        <div class="pair">
+          <div class="item"><div class="name">In-Person</div><div class="v">${fmt(ip)}</div></div>
+          <div class="item"><div class="name">Hybrid</div><div class="v">${fmt(hy)}</div></div>
+        </div>
+        <span class="delta-pill ${cls}">${deltaText}</span>
+      </div>`;
+  }
+  compareHost.innerHTML =
+    pair('Total Revenue', ipSC.totalRev, hySC.totalRev) +
+    pair('Gross Profit', ipSC.totalGP, hySC.totalGP) +
+    pair('Operating Profit', ipSC.opProfit, hySC.opProfit);
+
+  // Per-program bar
+  const labels = ipSC.rows.map(r => r.p.name.replace(/^Program - /, ''));
+  const ipGP = ipSC.rows.map(r => r.gp);
+  const hyGP = hySC.rows.map(r => r.gp);
+
+  const ctx1 = document.getElementById('compareBarChart').getContext('2d');
+  if (compareBarChart) compareBarChart.destroy();
+  compareBarChart = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'In-Person', data: ipGP, backgroundColor: '#111111', barPercentage: 0.85, categoryPercentage: 0.7 },
+        { label: 'Hybrid',    data: hyGP, backgroundColor: '#c8341f', barPercentage: 0.85, categoryPercentage: 0.7 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { position: 'top', align: 'end',
+          labels: { font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 12, usePointStyle: false } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtKSH(c.parsed.x)} KSH` } }
+      },
+      scales: {
+        x: { grid: { color: '#eeeae0' }, ticks: { callback: v => fmtKSH(v) } },
+        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Delta bar
+  const deltas = ipSC.rows.map((r,i) => ({ name: labels[i], d: hyGP[i] - ipGP[i] }))
+                          .sort((a,b) => b.d - a.d);
+  const ctx2 = document.getElementById('deltaChart').getContext('2d');
+  if (deltaChart) deltaChart.destroy();
+  deltaChart = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: deltas.map(d => d.name),
+      datasets: [{
+        label: 'Δ GP (Hybrid − In-Person)',
+        data: deltas.map(d => d.d),
+        backgroundColor: deltas.map(d => d.d >= 0 ? '#2f7a4d' : '#c8341f'),
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `Δ: ${fmtSigned(c.parsed.x)} KSH` } }
+      },
+      scales: {
+        x: { grid: { color: '#eeeae0' }, ticks: { callback: v => fmtKSH(v) } },
+        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ------------- RENDER: STACKED COGS -------------
+let stackChart = null;
+function renderStackChart() {
+  const sc = computeScenario(state.scenario, state.globalMult);
+  // Sort by margin descending for readability
+  const rows = [...sc.rows].sort((a,b) => b.margin - a.margin);
+  const labels = rows.map(r => r.p.name.replace(/^Program - /, ''));
+
+  const palette = {
+    'Direct staff costs':         '#111111',
+    'Rent and repairs':           '#4a4a4a',
+    'Equipment costs':            '#8a8a8a',
+    'Compute and SW':             '#c88b1f',
+    "Students' accreditation":    '#124734',
+    'Other - academics':          '#2f7a4d',
+    'Marketing and advertisements':'#c8341f',
+  };
+
+  const datasets = COST_KEYS.map(k => ({
+    label: COST_SHORT[k],
+    data: rows.map(r => r.rev > 0 ? (r.cogsByCat[k] / r.rev) * 100 : 0),
+    backgroundColor: palette[k],
+    borderWidth: 0,
+  }));
+  // Add GP slice on top
+  datasets.push({
+    label: 'Gross Profit',
+    data: rows.map(r => r.margin * 100),
+    backgroundColor: 'rgba(47, 122, 77, 0.18)',
+    borderColor: '#2f7a4d',
+    borderWidth: 1,
+  });
+
+  const ctx = document.getElementById('stackChart').getContext('2d');
+  if (stackChart) stackChart.destroy();
+  stackChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { position: 'top', align: 'end',
+          labels: { font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 10 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.x.toFixed(1)}%` } }
+      },
+      scales: {
+        x: { stacked: true, grid: { color: '#eeeae0' }, ticks: { callback: v => v + '%' }, max: 120 },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ------------- RENDER: WATERFALL -------------
+let waterfallChart = null;
+function renderWaterfall() {
+  const sc = computeScenario(state.scenario, state.globalMult);
+  // Build waterfall: Revenue, -COGS categories, GP, -OpEx categories, Op Profit
+  // Group COGS: sum all; show as single "COGS" bar plus breakdown?
+  // Better: Revenue → -Staff → -Rent → -Equipment → -Compute → -Accred → -Academics → -Marketing → GP → OpEx group → OP
+  // For readability, group COGS into 2-3 buckets and OpEx into 2 buckets
+  const cogsTotal = Object.fromEntries(COST_KEYS.map(k => [k, 0]));
+  sc.rows.forEach(r => { for (const k of COST_KEYS) cogsTotal[k] += r.cogsByCat[k]; });
+  const adminOpex = ['Administrative Personnel Costs','Insurance Cost','Compliance Cost',
+                     'Professional Fees','Directors fees','Office Support expenses',
+                     'Provision for Bad Debt']
+                     .reduce((s,k) => s + (sc.opex[k]||0), 0);
+  const variableOpex = Object.entries(sc.opex)
+                         .filter(([k]) => !['Administrative Personnel Costs','Insurance Cost',
+                           'Compliance Cost','Professional Fees','Directors fees',
+                           'Office Support expenses','Provision for Bad Debt'].includes(k))
+                         .reduce((s,[,v]) => s+v, 0);
+
+  // Steps: [label, delta, is_total]
+  const steps = [
+    ['Revenue',              sc.totalRev,  true],
+    ['− Staff',              -cogsTotal['Direct staff costs'], false],
+    ['− Rent',               -cogsTotal['Rent and repairs'],   false],
+    ['− Equipment',          -cogsTotal['Equipment costs'],    false],
+    ['− Compute/SW',         -cogsTotal['Compute and SW'],     false],
+    ['− Accreditation',      -cogsTotal["Students' accreditation"], false],
+    ['− Academics Other',    -cogsTotal['Other - academics'],  false],
+    ['− Marketing',          -cogsTotal['Marketing and advertisements'], false],
+    ['Gross Profit',         sc.totalGP,   true],
+    ['− Admin OpEx',         -adminOpex,   false],
+    ['− Other Fixed OpEx',   -variableOpex,false],
+    ['Operating Profit',     sc.opProfit,  true],
+  ];
+
+  // Compute stacked positions
+  let running = 0;
+  const bars = steps.map(([label, delta, isTotal]) => {
+    if (isTotal) {
+      running = delta;
+      return { label, base: 0, value: delta, total: true };
+    } else {
+      const base = delta >= 0 ? running : running + delta;
+      const abs = Math.abs(delta);
+      running += delta;
+      return { label, base, value: abs, delta, total: false };
+    }
+  });
+
+  const ctx = document.getElementById('waterfallChart').getContext('2d');
+  if (waterfallChart) waterfallChart.destroy();
+  waterfallChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: bars.map(b => b.label),
+      datasets: [
+        {
+          label: 'Base',
+          data: bars.map(b => b.base),
+          backgroundColor: 'rgba(0,0,0,0)',
+          stack: 's'
+        },
+        {
+          label: 'Value',
+          data: bars.map(b => b.value),
+          backgroundColor: bars.map(b => b.total
+            ? (b.value >= 0 ? '#111111' : '#c8341f')
+            : (b.delta >= 0 ? '#2f7a4d' : '#c8341f')),
+          stack: 's'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const b = bars[c.dataIndex];
+              if (c.dataset.label === 'Base') return null;
+              if (b.total) return `${b.label}: ${fmtKSH(b.value)} KSH`;
+              return `${b.label}: ${fmtSigned(b.delta)} KSH`;
+            }
+          },
+          filter: item => item.dataset.label !== 'Base'
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false },
+             ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 30 } },
+        y: { stacked: true, grid: { color: '#eeeae0' },
+             ticks: { callback: v => fmtKSH(v) } }
+      }
+    }
+  });
+}
+
+// ------------- ORCHESTRATION -------------
+function renderAll() {
+  renderKPIs();
+  renderScorecard();
+  populateProgramPicker();
+  renderSensitivity();
+  renderCompareSection();
+  renderStackChart();
+  renderWaterfall();
+}
+
+// Scenario toggle
+document.querySelectorAll('#scenarioToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#scenarioToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.scenario = btn.dataset.scenario;
+    renderAll();
+  });
+});
+
+// Reset global sliders
+document.getElementById('resetGlobal').addEventListener('click', () => {
+  COST_KEYS.forEach(k => state.globalMult[k] = 1.0);
+  document.querySelectorAll('#globalSliders input[type=range]').forEach(inp => inp.value = 100);
+  document.querySelectorAll('#globalSliders .pct').forEach(span => {
+    span.textContent = '0%'; span.classList.remove('pos','neg');
+  });
+  renderAll();
+});
+
+// Init
+buildGlobalSliders();
+buildHybridSliders();
+renderAll();
+
+document.getElementById('lastUpdated').textContent =
+  'Built ' + new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>

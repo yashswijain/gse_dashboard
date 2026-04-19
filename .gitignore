@@ -1,0 +1,13 @@
+# Excel model — confidential, never commit
+model.xlsx
+
+# Extracted data — contains real financials
+data.json
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+/tmp/
