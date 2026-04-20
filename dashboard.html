@@ -479,10 +479,22 @@
       <h2><span class="num">05</span>Cost Structure by Program</h2>
       <div class="caption">Which programs are staff-heavy vs. equipment-heavy. Identifies where specific cost-cut levers apply.</div>
     </div>
-    <div class="panel">
-      <h3>COGS Composition (Stacked, % of Revenue)</h3>
-      <div class="note">Shows COGS categories as a share of each program's revenue</div>
-      <div class="chart-holder" style="height: 420px;"><canvas id="stackChart"></canvas></div>
+    <div class="chart-row aside">
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <h3>COGS Breakdown</h3>
+            <div class="note">% of revenue per cost category · KSH absolute in tooltip</div>
+          </div>
+          <select class="program-picker" id="stackProgramPicker"></select>
+        </div>
+        <div class="chart-holder" style="height:320px;"><canvas id="stackChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3 id="stackStatsName">—</h3>
+        <div class="note">Cost summary</div>
+        <div id="stackStats" style="margin-top:12px;"></div>
+      </div>
     </div>
   </section>
 
@@ -561,6 +573,7 @@ const state = {
   hybridMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
   sort: { key: 'score', dir: 'desc' },
   pickedProgram: null,
+  stackProgram: null,
 };
 
 // ------------- NUMBER FORMATTERS -------------
@@ -1055,57 +1068,94 @@ function renderCompareSection() {
   });
 }
 
-// ------------- RENDER: STACKED COGS -------------
+// ------------- RENDER: COST STRUCTURE (single program) -------------
 let stackChart = null;
+
+function populateStackProgramPicker() {
+  const host = document.getElementById('stackProgramPicker');
+  const sc = computeScenario(state.scenario, state.globalMult);
+  const progs = sc.rows.map(r => r.p.name).sort();
+  host.innerHTML = progs.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (!state.stackProgram || !progs.includes(state.stackProgram)) {
+    state.stackProgram = progs[0];
+  }
+  host.value = state.stackProgram;
+  host.onchange = () => { state.stackProgram = host.value; renderStackChart(); };
+}
+
 function renderStackChart() {
   const sc = computeScenario(state.scenario, state.globalMult);
-  // Sort by margin descending for readability
-  const rows = [...sc.rows].sort((a,b) => b.margin - a.margin);
-  const labels = rows.map(r => r.p.name.replace(/^Program - /, ''));
+  populateStackProgramPicker();
+  const row = sc.rows.find(r => r.p.name === state.stackProgram);
+  if (!row) return;
 
   const palette = {
-    'Direct staff costs':         '#111111',
-    'Rent and repairs':           '#4a4a4a',
-    'Equipment costs':            '#8a8a8a',
-    'Compute and SW':             '#c88b1f',
-    "Students' accreditation":    '#124734',
-    'Other - academics':          '#2f7a4d',
+    'Direct staff costs':          '#111111',
+    'Rent and repairs':            '#4a4a4a',
+    'Equipment costs':             '#8a8a8a',
+    'Compute and SW':              '#c88b1f',
+    "Students' accreditation":     '#124734',
+    'Other - academics':           '#2f7a4d',
     'Marketing and advertisements':'#c8341f',
   };
 
-  const datasets = COST_KEYS.map(k => ({
-    label: COST_SHORT[k],
-    data: rows.map(r => r.rev > 0 ? (r.cogsByCat[k] / r.rev) * 100 : 0),
-    backgroundColor: palette[k],
-    borderWidth: 0,
-  }));
-  // Add GP slice on top
-  datasets.push({
-    label: 'Gross Profit',
-    data: rows.map(r => r.margin * 100),
-    backgroundColor: 'rgba(47, 122, 77, 0.18)',
-    borderColor: '#2f7a4d',
-    borderWidth: 1,
-  });
+  const categories = [...COST_KEYS, 'Gross Profit'];
+  const pctData = COST_KEYS.map(k => row.rev > 0 ? (row.cogsByCat[k] / row.rev) * 100 : 0);
+  pctData.push(row.margin * 100);
+  const absData = COST_KEYS.map(k => row.cogsByCat[k]);
+  absData.push(row.gp);
+  const colors = COST_KEYS.map(k => palette[k]);
+  colors.push('#2f7a4d');
+  const labels = COST_KEYS.map(k => COST_SHORT[k]);
+  labels.push('Gross Profit');
 
   const ctx = document.getElementById('stackChart').getContext('2d');
   if (stackChart) stackChart.destroy();
   stackChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets },
+    data: {
+      labels,
+      datasets: [{
+        data: pctData,
+        backgroundColor: colors,
+        borderWidth: 0,
+        borderRadius: 2,
+      }]
+    },
     options: {
       responsive: true, maintainAspectRatio: false, indexAxis: 'y',
       plugins: {
-        legend: { position: 'top', align: 'end',
-          labels: { font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 10 } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.x.toFixed(1)}%` } }
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              const abs = absData[c.dataIndex];
+              return `${fmtKSH(abs)} KSH  (${c.parsed.x.toFixed(1)}% of revenue)`;
+            }
+          }
+        }
       },
       scales: {
-        x: { stacked: true, grid: { color: '#eeeae0' }, ticks: { callback: v => v + '%' }, max: 120 },
-        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
+        x: { grid: { color: '#eeeae0' }, ticks: { callback: v => v + '%' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
       }
     }
   });
+
+  // Stats panel
+  document.getElementById('stackStatsName').textContent = row.p.name;
+  const cogsTotal = COST_KEYS.reduce((s, k) => s + row.cogsByCat[k], 0);
+  const biggestCat = COST_KEYS.reduce((a, b) => row.cogsByCat[a] > row.cogsByCat[b] ? a : b);
+  document.getElementById('stackStats').innerHTML = `
+    <table class="mono" style="width:100%; font-size:12px;">
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Revenue</td><td style="text-align:right">${fmtKSH(row.rev)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Total COGS</td><td style="text-align:right">${fmtKSH(cogsTotal)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">Gross Profit</td><td style="text-align:right;font-weight:600">${fmtKSH(row.gp)}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">GP Margin</td><td style="text-align:right;font-weight:600">${fmtPct(row.margin)}</td></tr>
+      <tr><td style="padding:8px 0 0;color:var(--ink-mute);border-top:1px solid var(--rule)">Largest cost</td><td style="text-align:right;padding-top:8px;border-top:1px solid var(--rule);font-weight:600">${COST_SHORT[biggestCat]}</td></tr>
+      <tr><td style="padding:4px 0;color:var(--ink-mute)">↳ % of revenue</td><td style="text-align:right">${fmtPct(row.cogsByCat[biggestCat] / row.rev)}</td></tr>
+    </table>
+  `;
 }
 
 // ------------- RENDER: WATERFALL -------------
