@@ -863,24 +863,16 @@ function renderSensitivity() {
   sensitivityChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: xs,
       datasets: [
         {
           label: 'Profit (KSH)',
-          data: ys,
+          data: xs.map((x, i) => ({ x, y: ys[i] })),
           borderColor: '#111111',
           backgroundColor: 'rgba(200, 52, 31, 0.08)',
           fill: true,
           borderWidth: 2,
           pointRadius: 0,
           tension: 0.05,
-        },
-        {
-          label: 'Current',
-          data: xs.map(n => n === Math.round(current/step)*step ? (current * (row.revPer - row.varPer) - row.fixedTotal) : null),
-          borderColor: '#c8341f',
-          pointRadius: 0,
-          showLine: false,
         }
       ]
     },
@@ -889,25 +881,22 @@ function renderSensitivity() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: { label: c => `N=${c.label} → ${fmtKSH(c.parsed.y)} KSH` }
+          callbacks: { label: c => `N=${c.parsed.x} → ${fmtKSH(c.parsed.y)} KSH` }
         }
       },
       scales: {
-        x: { title: { display: true, text: 'Enrollment (# students)' },
+        x: { type: 'linear',
+             title: { display: true, text: 'Enrollment (# students)' },
              grid: { color: '#eeeae0' },
              ticks: { maxTicksLimit: 10 } },
         y: { title: { display: true, text: 'Profit (KSH)' },
              grid: { color: '#eeeae0' },
              ticks: { callback: v => fmtKSH(v) } }
       }
-    }
-  });
-
-  // Overlay breakeven & current markers using after-draw plugin (simple version via annotation lines)
-  // We'll do it with native Chart.js by drawing vertical line in datasets
-  const verticalLine = {
-    id: 'verticalLines',
-    afterDraw: chart => {
+    },
+    plugins: [{
+      id: 'verticalLines',
+      afterDraw: chart => {
       const {ctx, chartArea, scales} = chart;
       const xScale = scales.x;
       const yScale = scales.y;
@@ -951,13 +940,7 @@ function renderSensitivity() {
         ctx.restore();
       }
     }
-  };
-  // Register vertical-line plugin once globally
-  if (!window._vlPluginInstalled) {
-    Chart.register(verticalLine);
-    window._vlPluginInstalled = true;
-  }
-  sensitivityChart.update();
+  }]});
 
   // Stats panel
   const statsHost = document.getElementById('progStats');
