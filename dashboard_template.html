@@ -594,7 +594,7 @@ function computeProgram(p, mult) {
   let cogs = 0;
   const cogsByCat = {};
   for (const k of COST_KEYS) {
-    const adj = (p.cogs_lines[k] || 0) * (mult[k] || 1);
+    const adj = (p.cogs_lines[k] || 0) * mult[k];
     cogsByCat[k] = adj;
     cogs += adj;
   }
