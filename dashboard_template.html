@@ -174,77 +174,187 @@
   .kpi .sub .delta.neg { color: var(--red); }
 
   /* ============ SCORECARD ============ */
-  .scorecard-wrap {
-    background: var(--bg-panel);
-    border: 1px solid var(--rule-strong);
-  }
-  table.scorecard {
-    width: 100%;
-    border-collapse: collapse;
+  /* ============ PROGRAM CARDS (SECTION 02) ============ */
+  .card-tier { margin-bottom: 32px; }
+  .tier-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .tier-label {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; padding-left: 10px;
   }
-  table.scorecard th {
-    text-align: left;
-    padding: 14px 14px;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-    font-weight: 600;
-    border-bottom: 1px solid var(--ink);
-    cursor: pointer;
-    user-select: none;
-    background: var(--bg);
-    white-space: nowrap;
-  }
-  table.scorecard th:hover { color: var(--ink); }
-  table.scorecard th .arr { color: var(--accent); margin-left: 4px; opacity: 0; }
-  table.scorecard th.sort-asc .arr,
-  table.scorecard th.sort-desc .arr { opacity: 1; }
-  table.scorecard td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--rule);
-    vertical-align: middle;
-  }
-  table.scorecard tr:hover td { background: #faf8f3; }
-  table.scorecard td.prog {
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    min-width: 240px;
-  }
-  table.scorecard td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 600;
-    margin-left: 6px;
-    border: 1px solid var(--ink);
-  }
-  .badge.diploma { background: var(--ink); color: var(--bg); }
-  .badge.certificate { background: transparent; color: var(--ink); }
-  .score-bar {
-    display: inline-block;
-    width: 60px; height: 8px;
-    background: var(--rule);
-    vertical-align: middle;
-    margin-right: 8px;
-    position: relative;
-  }
-  .score-bar > div { height: 100%; background: var(--green); }
-  .score-bar.amber > div { background: var(--amber); }
-  .score-bar.red > div { background: var(--red); }
+  .tier-header.green .tier-label { border-left: 3px solid var(--green); color: var(--green); }
+  .tier-header.amber .tier-label { border-left: 3px solid var(--amber); color: var(--amber); }
+  .tier-header.red   .tier-label { border-left: 3px solid var(--red);   color: var(--red); }
+  .tier-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-mute); letter-spacing: 0.1em; }
+  .cards-row { display: flex; flex-wrap: wrap; gap: 16px; }
 
-  .safety { display: inline-flex; align-items: center; gap: 6px; }
-  .safety .dot { width: 8px; height: 8px; border-radius: 50%; }
-  .safety .dot.green { background: var(--green); }
-  .safety .dot.amber { background: var(--amber); }
-  .safety .dot.red { background: var(--red); }
+  .prog-card {
+    background: var(--bg-panel); border: 1px solid var(--rule-strong);
+    width: 192px; padding: 0; cursor: pointer; position: relative;
+    transition: box-shadow 0.18s ease, transform 0.15s ease; overflow: hidden;
+  }
+  .prog-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.14); transform: translateY(-3px); }
+  .prog-card.tier-green { border-left: 4px solid var(--green); }
+  .prog-card.tier-amber { border-left: 4px solid var(--amber); }
+  .prog-card.tier-red   { border-left: 4px solid var(--red); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; padding: 13px 13px 0 11px; }
+  .card-badge {
+    display: inline-block; padding: 2px 6px; font-size: 9px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; font-weight: 600; border: 1px solid var(--ink);
+  }
+  .card-badge.diploma { background: var(--ink); color: var(--bg); }
+  .card-badge.certificate { background: transparent; color: var(--ink); }
+  .card-score { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-mute); }
+  .card-score .num { font-size: 15px; color: var(--ink); }
+
+  .card-name {
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 14px;
+    line-height: 1.3; letter-spacing: -0.01em; padding: 10px 13px 10px 11px; min-height: 56px;
+  }
+  .card-divider { height: 1px; background: var(--rule); margin: 0 11px; }
+  .card-stats { padding: 9px 13px 8px 11px; display: flex; flex-direction: column; gap: 5px; }
+  .card-stat { display: flex; justify-content: space-between; align-items: center; }
+  .card-stat .label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-mute); }
+  .card-stat .val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card-stat .val.neg { color: var(--red); }
+  .card-stat .val.pos { color: var(--green); }
+  .card-stat .val.warn { color: var(--amber); }
+
+  .card-health-bar { height: 4px; margin: 8px 11px 11px; background: var(--rule); }
+  .card-health-bar > div { height: 100%; }
+  .tier-green .card-health-bar > div { background: var(--green); }
+  .tier-amber .card-health-bar > div { background: var(--amber); }
+  .tier-red   .card-health-bar > div { background: var(--red); }
+
+  .card-hint {
+    position: absolute; bottom: 11px; right: 12px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 8px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-mute); opacity: 0; transition: opacity 0.15s;
+  }
+  .prog-card:hover .card-hint { opacity: 1; }
+
+  /* ============ CARD MODAL ============ */
+  .card-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(17,17,17,0.5); z-index: 200; backdrop-filter: blur(3px);
+  }
+  .card-modal-overlay.active { display: block; }
+
+  .card-modal-box {
+    position: fixed; top: 50%; left: 50%;
+    width: 700px; max-height: 90vh;
+    background: var(--bg-panel); border: 1px solid var(--rule-strong);
+    overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+    will-change: transform, opacity;
+  }
+  .modal-close-btn {
+    position: absolute; top: 14px; right: 16px; background: none;
+    border: 1px solid var(--rule-strong); width: 28px; height: 28px;
+    cursor: pointer; font-size: 15px; color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; transition: background 0.12s;
+  }
+  .modal-close-btn:hover { background: var(--ink); color: var(--bg); }
+
+  .modal-header {
+    padding: 18px 52px 14px 20px; border-bottom: 2px solid var(--ink);
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .modal-prog-name { font-family: 'Fraunces', serif; font-weight: 500; font-size: 21px; letter-spacing: -0.01em; }
+
+  .modal-kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--rule); }
+  .modal-kpi { padding: 12px 16px; border-right: 1px solid var(--rule); }
+  .modal-kpi:last-child { border-right: 0; }
+  .modal-kpi .label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 5px; }
+  .modal-kpi .val { font-family: 'Fraunces', serif; font-weight: 500; font-size: 19px; letter-spacing: -0.01em; }
+  .modal-kpi .val.neg { color: var(--red); }
+  .modal-kpi .val.pos { color: var(--green); }
+  .modal-kpi .val.warn { color: var(--amber); }
+
+  .modal-gauge-area {
+    padding: 10px 20px 6px; display: flex; flex-direction: column; align-items: center;
+    border-bottom: 1px solid var(--rule); background: var(--bg);
+  }
+  .modal-gauge-title {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 2px; align-self: flex-start;
+  }
+
+  .modal-sliders-area { padding: 16px 20px 20px; }
+  .modal-sliders-title {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-mute); margin-bottom: 14px;
+    border-left: 2px solid var(--accent); padding-left: 10px;
+  }
+  .modal-sliders-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
+  .modal-slider-item { display: flex; flex-direction: column; gap: 4px; }
+  .modal-slider-item .name {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-soft); font-weight: 600; font-family: 'IBM Plex Mono', monospace;
+  }
+  .modal-slider-item input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
+    background: var(--ink); outline: none; cursor: pointer;
+  }
+  .modal-slider-item input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; background: var(--accent); border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .modal-slider-item input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; background: var(--accent); border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .modal-slider-item .val { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); display: flex; justify-content: flex-end; }
+  .modal-slider-item .val .pct { font-weight: 600; }
+  .modal-slider-item .val .pct.neg { color: var(--green); }
+  .modal-slider-item .val .pct.pos { color: var(--red); }
+  .modal-reset-btn {
+    margin-top: 16px; border: 1px solid var(--ink); background: transparent;
+    padding: 8px 16px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; color: var(--ink);
+  }
+  .modal-reset-btn:hover { background: var(--ink); color: var(--bg); }
+
+  /* ============ MODAL SPLIT: COST + GAUGE ============ */
+  .modal-split-area {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .modal-cost-half {
+    padding: 14px 16px 14px 20px;
+    border-right: 1px solid var(--rule);
+  }
+  .modal-gauge-half {
+    padding: 10px 14px 6px;
+    display: flex; flex-direction: column; align-items: center;
+    background: var(--bg);
+  }
+  .modal-panel-title {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 10px;
+  }
+
+  /* Cost bars */
+  .cost-bar-row {
+    display: grid; grid-template-columns: 72px 1fr 40px;
+    align-items: center; gap: 7px; margin-bottom: 6px;
+  }
+  .cost-bar-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cost-bar-track { height: 7px; background: var(--rule); position: relative; }
+  .cost-bar-fill { height: 100%; position: absolute; left: 0; top: 0; transition: width 0.25s ease; }
+  .cost-bar-pct {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    font-weight: 600; text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .cost-bar-pct.neg { color: var(--red); }
+  .cost-bar-pct.pos { color: var(--green); }
+  .cost-bar-divider { height: 1px; background: var(--rule); margin: 8px 0 7px; }
 
   /* ============ CHARTS ============ */
   .chart-row { display: grid; gap: 24px; }
@@ -412,62 +522,39 @@
     <div class="kpi-grid" id="kpiGrid"></div>
   </section>
 
-  <!-- ============ SECTION 2: COURSE SCORECARD ============ -->
+  <!-- ============ SECTION 2: PROGRAM CARDS ============ -->
   <section>
     <div class="section-head">
       <h2><span class="num">02</span>Course Scorecard</h2>
-      <div class="caption">All 14 programs ranked by Course Health Score — weighted composite of GP margin, safety margin vs. breakeven, and contribution to total GP. Click any column to sort.</div>
+      <div class="caption">14 programs grouped by health tier. Click any card to open a scenario explorer.</div>
     </div>
-    <div class="scorecard-wrap">
-      <table class="scorecard" id="scorecardTable">
-        <thead>
-          <tr>
-            <th data-sort="score" class="sort-desc">Health Score<span class="arr">↓</span></th>
-            <th data-sort="name">Program<span class="arr"></span></th>
-            <th data-sort="rev_per" class="num" style="text-align:right">Rev / Student<span class="arr"></span></th>
-            <th data-sort="gp_per" class="num" style="text-align:right">GP / Student<span class="arr"></span></th>
-            <th data-sort="margin" class="num" style="text-align:right">GP Margin<span class="arr"></span></th>
-            <th data-sort="enroll" class="num" style="text-align:right">Enrolled<span class="arr"></span></th>
-            <th data-sort="breakeven" class="num" style="text-align:right">Breakeven<span class="arr"></span></th>
-            <th data-sort="safety" class="num" style="text-align:right">Safety<span class="arr"></span></th>
-            <th data-sort="gp_total" class="num" style="text-align:right">GP Contrib.<span class="arr"></span></th>
-            <th data-sort="gp_pct" class="num" style="text-align:right">% of GP<span class="arr"></span></th>
-          </tr>
-        </thead>
-        <tbody id="scorecardBody"></tbody>
-      </table>
+    <div id="cardTierGreen" class="card-tier">
+      <div class="tier-header green">
+        <div class="tier-label">Strong Health</div>
+        <div class="tier-count" id="tierGreenCount"></div>
+      </div>
+      <div class="cards-row" id="cardsGreen"></div>
+    </div>
+    <div id="cardTierAmber" class="card-tier">
+      <div class="tier-header amber">
+        <div class="tier-label">Watch</div>
+        <div class="tier-count" id="tierAmberCount"></div>
+      </div>
+      <div class="cards-row" id="cardsAmber"></div>
+    </div>
+    <div id="cardTierRed" class="card-tier">
+      <div class="tier-header red">
+        <div class="tier-label">Underperforming</div>
+        <div class="tier-count" id="tierRedCount"></div>
+      </div>
+      <div class="cards-row" id="cardsRed"></div>
     </div>
   </section>
 
-  <!-- ============ SECTION 3: ENROLLMENT SENSITIVITY ============ -->
+  <!-- ============ SECTION 3: IN-PERSON vs HYBRID ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">03</span>Enrollment Sensitivity</h2>
-      <div class="caption">Program-level profit as a function of enrollment. Vertical line = breakeven. Dot = current enrollment.</div>
-    </div>
-    <div class="chart-row aside">
-      <div class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
-          <div>
-            <h3>Profit vs. Enrollment</h3>
-            <div class="note">Contribution margin basis · COGS-only breakeven</div>
-          </div>
-          <select class="program-picker" id="programPicker"></select>
-        </div>
-        <div class="chart-holder"><canvas id="sensitivityChart"></canvas></div>
-      </div>
-      <div class="panel">
-        <h3 id="progStatsName">—</h3>
-        <div class="note">Program stats</div>
-        <div id="progStats" style="margin-top: 12px;"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ SECTION 4: IN-PERSON vs HYBRID ============ -->
-  <section>
-    <div class="section-head">
-      <h2><span class="num">04</span>In-Person vs. Hybrid</h2>
+      <h2><span class="num">03</span>In-Person vs. Hybrid</h2>
       <div class="caption">Apply independent cost multipliers to Hybrid to model planning assumptions. In-Person baseline stays fixed.</div>
     </div>
     <div class="hybrid-sliders" id="hybridSliders"></div>
@@ -486,35 +573,10 @@
     </div>
   </section>
 
-  <!-- ============ SECTION 5: COST STRUCTURE ============ -->
+  <!-- ============ SECTION 5: WATERFALL ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">05</span>Cost Structure by Program</h2>
-      <div class="caption">Which programs are staff-heavy vs. equipment-heavy. Identifies where specific cost-cut levers apply.</div>
-    </div>
-    <div class="chart-row aside">
-      <div class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div>
-            <h3>COGS Breakdown</h3>
-            <div class="note">% of revenue per cost category · KSH absolute in tooltip</div>
-          </div>
-          <select class="program-picker" id="stackProgramPicker"></select>
-        </div>
-        <div class="chart-holder" style="height:320px;"><canvas id="stackChart"></canvas></div>
-      </div>
-      <div class="panel">
-        <h3 id="stackStatsName">—</h3>
-        <div class="note">Cost summary</div>
-        <div id="stackStats" style="margin-top:12px;"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ SECTION 6: WATERFALL ============ -->
-  <section>
-    <div class="section-head">
-      <h2><span class="num">06</span>Revenue → Operating Profit</h2>
+      <h2><span class="num">04</span>Revenue → Operating Profit</h2>
       <div class="caption">Company-wide bridge from top-line revenue down to operating profit, per semester.</div>
     </div>
     <div class="panel">
@@ -525,6 +587,33 @@
   </section>
 
 </main>
+
+<!-- ============ CARD MODAL ============ -->
+<div id="cardModalOverlay" class="card-modal-overlay">
+  <div id="cardModalBox" class="card-modal-box">
+    <button class="modal-close-btn" id="closeCardModal">×</button>
+    <div class="modal-header">
+      <span class="modal-prog-name" id="modalProgName">—</span>
+      <span class="card-badge" id="modalBadge">D</span>
+    </div>
+    <div class="modal-kpi-strip" id="modalKpiStrip"></div>
+    <div class="modal-split-area">
+      <div class="modal-cost-half">
+        <div class="modal-panel-title">Cost Structure</div>
+        <div id="modalCostBars"></div>
+      </div>
+      <div class="modal-gauge-half">
+        <div class="modal-panel-title">GP Margin</div>
+        <canvas id="gaugeCanvas" width="310" height="272"></canvas>
+      </div>
+    </div>
+    <div class="modal-sliders-area">
+      <div class="modal-sliders-title">Scenario Levers · Local only · does not affect dashboard</div>
+      <div class="modal-sliders-grid" id="modalSlidersGrid"></div>
+      <button class="modal-reset-btn" id="resetModalSliders">Reset All</button>
+    </div>
+  </div>
+</div>
 
 <footer class="footer-love">
   <span class="footer-left"></span>
@@ -588,9 +677,6 @@ const state = {
   scenario: 'In-Person',
   globalMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
   hybridMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
-  sort: { key: 'score', dir: 'desc' },
-  pickedProgram: null,
-  stackProgram: null,
 };
 
 // ------------- NUMBER FORMATTERS -------------
@@ -641,6 +727,7 @@ function computeProgram(p, mult) {
 
 function computeScenario(scenarioKey, globalMult, hybridMultOverride=null) {
   const s = RAW_DATA[scenarioKey];
+  if (!s) { console.error('computeScenario: unknown scenario key:', scenarioKey); return null; }
   const effMult = {};
   for (const k of COST_KEYS) {
     effMult[k] = globalMult[k] * (scenarioKey === 'Hybrid' && hybridMultOverride ? hybridMultOverride[k] : 1);
@@ -675,17 +762,20 @@ function computeScenario(scenarioKey, globalMult, hybridMultOverride=null) {
 
 // Course Health Score (composite)
 function healthScore(row, totalGP) {
-  // Three components normalized to 0-1:
-  // 1. Margin (0 at 0%, 1 at 50%)
-  const marginScore = Math.max(0, Math.min(1, row.margin / 0.5));
-  // 2. Safety margin (0 at <=1x, 1 at >=3x)
-  const safetyScore = row.safety === null ? 0 :
-    (row.safety === Infinity ? 1 : Math.max(0, Math.min(1, (row.safety - 1) / 2)));
-  // 3. GP contribution share (0 at 0%, 1 at 15%)
-  const gpShare = totalGP > 0 ? row.gp / totalGP : 0;
-  const contribScore = Math.max(0, Math.min(1, gpShare / 0.15));
-  // Weighted: 40% margin, 40% safety, 20% contribution
-  return 0.4 * marginScore + 0.4 * safetyScore + 0.2 * contribScore;
+  // 1. GP Margin (60%) — piecewise:
+  //    Negative range: linear, floor at -100% → 0, breakeven 0% → 0.25
+  //    Positive range: diminishing returns x/(x+k), k=0.15 means 15% margin = half-score
+  //    Asymptotes to 1.0 — perfect score is impossible, preserving differentiation
+  const marginScore = row.margin < 0
+    ? Math.max(0, (row.margin + 1.0) * 0.25)                     // -100%→0,   0%→0.25
+    : 0.25 + 0.75 * (row.margin / (row.margin + 0.15));           //    0%→0.25, ∞%→1.0
+
+  // 2. GP Contribution (40%) — diminishing returns on portfolio GP share
+  //    k=0.08 means 8% GP share = half-score; asymptotes to 1.0
+  const gpShare = totalGP > 0 ? Math.max(0, row.gp / totalGP) : 0;
+  const contribScore = gpShare / (gpShare + 0.08);
+
+  return 0.6 * marginScore + 0.4 * contribScore;
 }
 
 // ------------- SLIDERS (global) -------------
@@ -743,6 +833,7 @@ function buildHybridSliders() {
       state.hybridMult[key] = v;
       const span = document.querySelector(`[data-show-h="${key}"]`);
       const delta = (v - 1) * 100;
+      if (!span) return;
       span.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
       span.classList.remove('pos','neg');
       if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
@@ -779,223 +870,368 @@ function renderKPIs() {
     </div>`).join('');
 }
 
-// ------------- RENDER: SCORECARD -------------
-let scorecardData = [];
-function renderScorecard() {
+// ------------- RENDER: PROGRAM CARDS (Section 02) -------------
+function renderCards() {
   const sc = computeScenario(state.scenario, state.globalMult);
-  scorecardData = sc.rows.map(r => ({
-    name: r.p.name,
-    type: r.p.type,
-    rev_per: r.revPer,
-    gp_per: r.gpPer,
-    margin: r.margin,
-    enroll: r.p.enrollment,
-    breakeven: r.breakeven,
-    safety: r.safety,
-    gp_total: r.gp,
-    gp_pct: sc.totalGP > 0 ? r.gp / sc.totalGP : 0,
-    score: healthScore(r, sc.totalGP),
-    _row: r,
+  const rows = sc.rows.map(r => ({
+    name: r.p.name, type: r.p.type,
+    margin: r.margin, enroll: r.p.enrollment, safety: r.safety,
+    score: healthScore(r, sc.totalGP), _row: r,
   }));
-  sortAndRenderScorecard();
-}
 
-function sortAndRenderScorecard() {
-  const { key, dir } = state.sort;
-  const rows = [...scorecardData].sort((a,b) => {
-    let av = a[key], bv = b[key];
-    if (av === Infinity) av = -1; // infinity breakeven = bad
-    if (bv === Infinity) bv = -1;
-    if (av === null) av = -1;
-    if (bv === null) bv = -1;
-    if (typeof av === 'string') return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-    return dir === 'asc' ? av - bv : bv - av;
-  });
-  const body = document.getElementById('scorecardBody');
-  body.innerHTML = rows.map(r => {
-    const scoreClass = r.score >= 0.65 ? '' : (r.score >= 0.35 ? 'amber' : 'red');
-    const safetyDot = r.safety === null ? 'red' :
-                      r.safety === Infinity ? 'green' :
-                      r.safety >= 1.5 ? 'green' :
-                      r.safety >= 1.0 ? 'amber' : 'red';
-    const safetyText = r.safety === null ? 'n/a' :
-                       r.safety === Infinity ? '∞' :
-                       r.safety.toFixed(2) + 'x';
-    const breakText = r.breakeven === Infinity ? '∞' : fmtInt.format(r.breakeven);
-    return `
-      <tr>
-        <td><span class="score-bar ${scoreClass}"><div style="width:${r.score*100}%"></div></span>${(r.score*100).toFixed(0)}</td>
-        <td class="prog">${r.name}<span class="badge ${r.type.toLowerCase()}">${r.type.charAt(0)}</span></td>
-        <td class="num">${fmtKSH(r.rev_per)}</td>
-        <td class="num" style="${r.gp_per < 0 ? 'color:var(--red)' : ''}">${fmtKSH(r.gp_per)}</td>
-        <td class="num" style="${r.margin < 0 ? 'color:var(--red);font-weight:600' : ''}">${fmtPct(r.margin)}</td>
-        <td class="num">${fmtInt.format(r.enroll)}</td>
-        <td class="num">${breakText}</td>
-        <td class="num"><span class="safety"><span class="dot ${safetyDot}"></span>${safetyText}</span></td>
-        <td class="num">${fmtKSH(r.gp_total)}</td>
-        <td class="num">${fmtPct(r.gp_pct)}</td>
-      </tr>`;
-  }).join('');
+  const green = rows.filter(r => r.score >= 0.80).sort((a,b) => b.score - a.score);
+  const amber = rows.filter(r => r.score >= 0.50 && r.score < 0.80).sort((a,b) => b.score - a.score);
+  const red   = rows.filter(r => r.score < 0.50).sort((a,b) => b.score - a.score);
 
-  // header indicators
-  document.querySelectorAll('table.scorecard th').forEach(th => {
-    th.classList.remove('sort-asc','sort-desc');
-    const arr = th.querySelector('.arr');
-    if (th.dataset.sort === key) {
-      th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
-      arr.textContent = dir === 'asc' ? '↑' : '↓';
-    }
-  });
-}
+  document.getElementById('tierGreenCount').textContent = `${green.length} program${green.length !== 1 ? 's' : ''}`;
+  document.getElementById('tierAmberCount').textContent = `${amber.length} program${amber.length !== 1 ? 's' : ''}`;
+  document.getElementById('tierRedCount').textContent   = `${red.length} program${red.length !== 1 ? 's' : ''}`;
 
-// header click sort
-document.querySelectorAll('table.scorecard th').forEach(th => {
-  th.addEventListener('click', () => {
-    const k = th.dataset.sort;
-    if (state.sort.key === k) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
-    else { state.sort.key = k; state.sort.dir = (k === 'name') ? 'asc' : 'desc'; }
-    sortAndRenderScorecard();
-  });
-});
-
-// ------------- RENDER: ENROLLMENT SENSITIVITY -------------
-let sensitivityChart = null;
-
-function populateProgramPicker() {
-  const host = document.getElementById('programPicker');
-  const sc = computeScenario(state.scenario, state.globalMult);
-  const progs = sc.rows.map(r => r.p.name).sort();
-  host.innerHTML = progs.map(n => `<option value="${n}">${n}</option>`).join('');
-  if (!state.pickedProgram || !progs.includes(state.pickedProgram)) {
-    state.pickedProgram = progs[0];
+  function buildCard(r) {
+    const tierClass = r.score >= 0.80 ? 'tier-green' : r.score >= 0.50 ? 'tier-amber' : 'tier-red';
+    const marginCls = r.margin < 0 ? 'neg' : r.margin < 0.2 ? 'warn' : 'pos';
+    const safetyCls = r.safety === null || r.safety < 1 ? 'neg' : r.safety < 1.5 ? 'warn' : 'pos';
+    const safetyTxt = r.safety === null ? 'n/a' : r.safety === Infinity ? '∞' : r.safety.toFixed(2) + 'x';
+    const card = document.createElement('div');
+    card.className = `prog-card ${tierClass}`;
+    card.dataset.prog = r.name;
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-badge ${r.type.toLowerCase()}">${r.type.charAt(0)}</span>
+        <span class="card-score"><span class="num">${(r.score*100).toFixed(0)}</span> pts</span>
+      </div>
+      <div class="card-name">${r.name.replace(/^Program - /, '')}</div>
+      <div class="card-divider"></div>
+      <div class="card-stats">
+        <div class="card-stat"><span class="label">GP Margin</span><span class="val ${marginCls}">${fmtPct(r.margin)}</span></div>
+        <div class="card-stat"><span class="label">Enrolled</span><span class="val">${r.enroll}</span></div>
+        <div class="card-stat"><span class="label">Safety</span><span class="val ${safetyCls}">${safetyTxt}</span></div>
+      </div>
+      <div class="card-health-bar"><div style="width:${(r.score*100).toFixed(0)}%"></div></div>
+      <span class="card-hint">open ↗</span>
+    `;
+    card.addEventListener('click', () => openCardModal(r.name, card));
+    return card;
   }
-  host.value = state.pickedProgram;
-  host.onchange = () => { state.pickedProgram = host.value; renderSensitivity(); };
+
+  ['Green','Amber','Red'].forEach((tier, i) => {
+    const arr = [green, amber, red][i];
+    const host = document.getElementById(`cards${tier}`);
+    host.innerHTML = '';
+    arr.forEach(r => host.appendChild(buildCard(r)));
+  });
 }
 
-function renderSensitivity() {
+// ------------- CARD MODAL: OPEN / CLOSE -------------
+let modalBaseRow = null;
+let modalLocalState = null;
+
+function openCardModal(progName, cardEl) {
   const sc = computeScenario(state.scenario, state.globalMult);
-  const row = sc.rows.find(r => r.p.name === state.pickedProgram);
+  const row = sc.rows.find(r => r.p.name === progName);
   if (!row) return;
 
-  // curve: profit vs enrollment from 0 to max(current*2.5, breakeven*1.5, 100)
-  const current = row.p.enrollment;
-  const be = row.breakeven === Infinity ? current * 2 : row.breakeven;
-  const maxN = Math.max(current * 2.5, be * 1.5, 100);
-  const step = Math.max(1, Math.round(maxN / 80));
-  const xs = [], ys = [];
-  for (let n = 0; n <= maxN; n += step) {
-    const profit = n * (row.revPer - row.varPer) - row.fixedTotal;
-    xs.push(n); ys.push(profit);
-  }
-  const ctx = document.getElementById('sensitivityChart').getContext('2d');
-  if (sensitivityChart) sensitivityChart.destroy();
-  sensitivityChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [
-        {
-          label: 'Profit (KSH)',
-          data: xs.map((x, i) => ({ x, y: ys[i] })),
-          borderColor: '#111111',
-          backgroundColor: 'rgba(200, 52, 31, 0.08)',
-          fill: true,
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.05,
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: c => `N=${c.parsed.x} → ${fmtKSH(c.parsed.y)} KSH` }
-        }
-      },
-      scales: {
-        x: { type: 'linear',
-             title: { display: true, text: 'Enrollment (# students)' },
-             grid: { color: '#eeeae0' },
-             ticks: { maxTicksLimit: 10 } },
-        y: { title: { display: true, text: 'Profit (KSH)' },
-             grid: { color: '#eeeae0' },
-             ticks: { callback: v => fmtKSH(v) } }
-      }
-    },
-    plugins: [{
-      id: 'verticalLines',
-      afterDraw: chart => {
-      const {ctx, chartArea, scales} = chart;
-      const xScale = scales.x;
-      const yScale = scales.y;
-      // Zero line
-      if (yScale.min < 0 && yScale.max > 0) {
-        const y0 = yScale.getPixelForValue(0);
-        ctx.save();
-        ctx.strokeStyle = '#8a8a8a';
-        ctx.setLineDash([3,3]);
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, y0); ctx.lineTo(chartArea.right, y0);
-        ctx.stroke();
-        ctx.restore();
-      }
-      // Breakeven vertical
-      if (row.breakeven !== Infinity && row.breakeven > 0 && row.breakeven <= maxN) {
-        const xBE = xScale.getPixelForValue(row.breakeven);
-        ctx.save();
-        ctx.strokeStyle = '#c8341f';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4,4]);
-        ctx.beginPath();
-        ctx.moveTo(xBE, chartArea.top); ctx.lineTo(xBE, chartArea.bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#c8341f';
-        ctx.font = 'bold 10px "IBM Plex Mono"';
-        ctx.fillText(`BE: ${row.breakeven}`, xBE + 4, chartArea.top + 12);
-        ctx.restore();
-      }
-      // Current enrollment marker
-      if (current <= maxN) {
-        const xCur = xScale.getPixelForValue(current);
-        const yCur = yScale.getPixelForValue(current * (row.revPer - row.varPer) - row.fixedTotal);
-        ctx.save();
-        ctx.fillStyle = '#124734';
-        ctx.beginPath(); ctx.arc(xCur, yCur, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#124734';
-        ctx.font = 'bold 10px "IBM Plex Mono"';
-        ctx.fillText(`Current: ${current}`, xCur + 8, yCur - 8);
-        ctx.restore();
-      }
-    }
-  }]});
+  modalBaseRow = row;
+  modalLocalState = {
+    enrollment: row.p.enrollment,
+    priceMult: 1.0,
+    cogsMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  };
 
-  // Stats panel
-  const statsHost = document.getElementById('progStats');
-  document.getElementById('progStatsName').textContent = row.p.name;
-  const verdict = row.breakeven === Infinity ? 'Unprofitable at any scale' :
-                  row.safety >= 1.5 ? 'Comfortable margin' :
-                  row.safety >= 1.0 ? 'Near breakeven — watch' :
-                  'Below breakeven — losing money';
-  const verdictColor = row.breakeven === Infinity || row.safety < 1 ? 'var(--red)' :
-                       row.safety < 1.5 ? 'var(--amber)' : 'var(--green)';
-  statsHost.innerHTML = `
-    <table class="mono" style="width:100%; font-size:12px;">
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Type</td><td style="text-align:right">${row.p.type}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Enrollment</td><td style="text-align:right">${row.p.enrollment}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Revenue / student</td><td style="text-align:right">${fmtKSH(row.revPer)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Variable cost / student</td><td style="text-align:right">${fmtKSH(row.varPer)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Contribution / student</td><td style="text-align:right;font-weight:600">${fmtKSH(row.contribPer)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Fixed costs (allocated)</td><td style="text-align:right">${fmtKSH(row.fixedTotal)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Breakeven students</td><td style="text-align:right;font-weight:600">${row.breakeven === Infinity ? '∞' : row.breakeven}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">GP margin</td><td style="text-align:right;font-weight:600">${fmtPct(row.margin)}</td></tr>
-      <tr><td style="padding:8px 0 0;color:var(--ink-mute);border-top:1px solid var(--rule)">Verdict</td><td style="text-align:right;padding-top:8px;border-top:1px solid var(--rule);color:${verdictColor};font-weight:600">${verdict}</td></tr>
-    </table>
-  `;
+  // Header
+  document.getElementById('modalProgName').textContent = progName.replace(/^Program - /, '');
+  const badge = document.getElementById('modalBadge');
+  badge.textContent = row.p.type.charAt(0);
+  badge.className = 'card-badge ' + row.p.type.toLowerCase();
+
+  buildModalSliders();
+  updateModalDisplay();
+
+  // Animate: expand from card position
+  const rect  = cardEl.getBoundingClientRect();
+  const overlay = document.getElementById('cardModalOverlay');
+  const box   = document.getElementById('cardModalBox');
+
+  // Compute FLIP: make modal start at card's screen position then spring to center
+  const finalW  = 700;
+  const finalCX = window.innerWidth  / 2;
+  const finalCY = window.innerHeight / 2;
+  const cardCX  = rect.left + rect.width  / 2;
+  const cardCY  = rect.top  + rect.height / 2;
+  const scaleX  = rect.width  / finalW;
+  // Use uniform scale based on width; height we let the spring handle
+  const tx = cardCX - finalCX;
+  const ty = cardCY - finalCY;
+
+  box.style.transition = 'none';
+  box.style.opacity    = '0';
+  box.style.transform  = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scaleX})`;
+
+  overlay.classList.add('active');
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    box.style.transition = 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.22s ease';
+    box.style.transform  = 'translate(-50%, -50%)';
+    box.style.opacity    = '1';
+  }));
 }
 
+function closeCardModal() {
+  const box     = document.getElementById('cardModalBox');
+  const overlay = document.getElementById('cardModalOverlay');
+  box.style.transition = 'transform 0.22s ease-in, opacity 0.18s ease';
+  box.style.transform  = 'translate(-50%, -50%) scale(0.88)';
+  box.style.opacity    = '0';
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    box.style.transition = 'none';
+    box.style.transform  = 'translate(-50%, -50%)';
+    box.style.opacity    = '1';
+  }, 240);
+}
+
+document.getElementById('closeCardModal').addEventListener('click', closeCardModal);
+document.getElementById('cardModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('cardModalOverlay')) closeCardModal();
+});
+
+// ------------- MODAL: BUILD SLIDERS -------------
+function buildModalSliders() {
+  const grid = document.getElementById('modalSlidersGrid');
+  grid.innerHTML = '';
+  const row = modalBaseRow;
+  const maxEnroll = Math.max(row.p.enrollment * 4, row.breakeven === Infinity ? row.p.enrollment * 4 : Math.ceil(row.breakeven * 2), 100);
+
+  // Enrollment (absolute)
+  grid.appendChild(makeModalSliderAbs('Enrollment', 'enroll', 1, maxEnroll, 1, row.p.enrollment, v => {
+    modalLocalState.enrollment = v;
+  }));
+
+  // Course Price (% multiplier)
+  grid.appendChild(makeModalSliderPct('Course Price', 'price', v => { modalLocalState.priceMult = v; }));
+
+  // COGS (% multipliers)
+  COST_KEYS.forEach((k, i) => {
+    grid.appendChild(makeModalSliderPct(COST_SHORT[k], `cogs${i}`, v => { modalLocalState.cogsMult[k] = v; }));
+  });
+}
+
+function makeModalSliderAbs(label, id, min, max, step, initVal, onChangeFn) {
+  const div = document.createElement('div');
+  div.className = 'modal-slider-item';
+  div.innerHTML = `
+    <span class="name">${label}</span>
+    <input type="range" id="mslider_${id}" min="${min}" max="${max}" step="${step}" value="${initVal}">
+    <div class="val"><span class="pct" id="mval_${id}">${initVal} students</span></div>
+  `;
+  div.querySelector('input').addEventListener('input', e => {
+    const v = parseInt(e.target.value);
+    onChangeFn(v);
+    document.getElementById(`mval_${id}`).textContent = v + ' students';
+    updateModalDisplay();
+  });
+  return div;
+}
+
+function makeModalSliderPct(label, id, onChangeFn) {
+  const div = document.createElement('div');
+  div.className = 'modal-slider-item';
+  div.innerHTML = `
+    <span class="name">${label}</span>
+    <input type="range" id="mslider_${id}" min="0" max="200" step="1" value="100">
+    <div class="val"><span class="pct" id="mval_${id}">+0%</span></div>
+  `;
+  div.querySelector('input').addEventListener('input', e => {
+    const mult  = parseInt(e.target.value) / 100;
+    onChangeFn(mult);
+    const delta = (mult - 1) * 100;
+    const el    = document.getElementById(`mval_${id}`);
+    el.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
+    el.className   = 'pct' + (delta > 0 ? ' pos' : delta < 0 ? ' neg' : '');
+    updateModalDisplay();
+  });
+  return div;
+}
+
+document.getElementById('resetModalSliders').addEventListener('click', () => {
+  if (!modalBaseRow) return;
+  const row = modalBaseRow;
+  modalLocalState.enrollment = row.p.enrollment;
+  modalLocalState.priceMult  = 1.0;
+  COST_KEYS.forEach(k => { modalLocalState.cogsMult[k] = 1.0; });
+
+  const enrollEl = document.getElementById('mslider_enroll');
+  if (enrollEl) { enrollEl.value = row.p.enrollment; document.getElementById('mval_enroll').textContent = row.p.enrollment + ' students'; }
+
+  const priceEl = document.getElementById('mslider_price');
+  if (priceEl) { priceEl.value = 100; const pe = document.getElementById('mval_price'); pe.textContent = '+0%'; pe.className = 'pct'; }
+
+  COST_KEYS.forEach((k, i) => {
+    const el = document.getElementById(`mslider_cogs${i}`);
+    const ve = document.getElementById(`mval_cogs${i}`);
+    if (el && ve) { el.value = 100; ve.textContent = '+0%'; ve.className = 'pct'; }
+  });
+
+  updateModalDisplay();
+});
+
+// ------------- MODAL: COMPUTE & DISPLAY -------------
+function computeModalResult() {
+  const row = modalBaseRow;
+  // Base revenue per student already reflects current global scenario
+  const baseRevPer = row.p.enrollment > 0 ? row.rev / row.p.enrollment : 0;
+  // Base COGS lines already reflect global mults — use cogsByCat as baseline
+  const adjCogsLines = Object.fromEntries(COST_KEYS.map(k => [k, row.cogsByCat[k]]));
+  const synth = {
+    ...row.p,
+    enrollment: modalLocalState.enrollment,
+    total_revenue_sheet: baseRevPer * modalLocalState.priceMult * modalLocalState.enrollment,
+    cogs_lines: { ...row.p.cogs_lines, ...adjCogsLines },
+  };
+  return computeProgram(synth, modalLocalState.cogsMult);
+}
+
+function updateModalDisplay() {
+  const r = computeModalResult();
+
+  // KPI strip
+  const marginCls = r.margin < 0 ? 'neg' : r.margin < 0.2 ? 'warn' : 'pos';
+  document.getElementById('modalKpiStrip').innerHTML = [
+    { label: 'Revenue',      val: fmtKSH(r.rev) + ' KSH',  cls: '' },
+    { label: 'Gross Profit', val: fmtKSH(r.gp)  + ' KSH',  cls: r.gp < 0 ? 'neg' : 'pos' },
+    { label: 'GP Margin',    val: fmtPct(r.margin),         cls: marginCls },
+    { label: 'Breakeven',    val: r.breakeven === Infinity ? '∞ students' : r.breakeven + ' students', cls: '' },
+  ].map(k => `<div class="modal-kpi"><div class="label">${k.label}</div><div class="val ${k.cls}">${k.val}</div></div>`).join('');
+
+  renderModalCostBars(r);
+  drawGauge(r.margin);
+}
+
+// ------------- MODAL: COST BARS -------------
+const COST_PALETTE = {
+  'Direct staff costs':           '#111111',
+  'Rent and repairs':             '#4a4a4a',
+  'Equipment costs':              '#8a8a8a',
+  'Compute and SW':               '#c88b1f',
+  "Students' accreditation":      '#124734',
+  'Other - academics':            '#2f7a4d',
+  'Marketing and advertisements': '#c8341f',
+};
+
+function renderModalCostBars(r) {
+  const host = document.getElementById('modalCostBars');
+  if (!host) return;
+
+  let html = '';
+  COST_KEYS.forEach(k => {
+    const pct = r.rev > 0 ? (r.cogsByCat[k] / r.rev) * 100 : 0;
+    const barW = Math.max(0, Math.min(100, pct));
+    html += `
+      <div class="cost-bar-row">
+        <div class="cost-bar-label">${COST_SHORT[k]}</div>
+        <div class="cost-bar-track"><div class="cost-bar-fill" style="width:${barW.toFixed(1)}%;background:${COST_PALETTE[k]};"></div></div>
+        <div class="cost-bar-pct">${pct.toFixed(1)}%</div>
+      </div>`;
+  });
+
+  html += '<div class="cost-bar-divider"></div>';
+
+  const gpPct = r.margin * 100;
+  const gpBarW = Math.max(0, Math.min(100, gpPct));
+  html += `
+    <div class="cost-bar-row">
+      <div class="cost-bar-label" style="font-weight:700;color:var(--ink)">GP</div>
+      <div class="cost-bar-track"><div class="cost-bar-fill" style="width:${gpBarW.toFixed(1)}%;background:${gpPct >= 0 ? '#2f7a4d' : '#c8341f'};"></div></div>
+      <div class="cost-bar-pct ${gpPct < 0 ? 'neg' : 'pos'}">${gpPct.toFixed(1)}%</div>
+    </div>`;
+
+  host.innerHTML = html;
+}
+
+// ------------- GAUGE -------------
+function drawGauge(margin) {
+  const canvas = document.getElementById('gaugeCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const cx = W / 2;   // 250
+  const R  = Math.min(W / 2 - 22, Math.floor(H * 0.56));  // fits any canvas size
+  const cy = R + 44;
+
+  // 240° gauge: clockwise from 150° to 30° (canvas angles, 0°=right, CW)
+  const startA = 5 * Math.PI / 6;    // 150°
+  const endA   = Math.PI / 6;        // 30°
+  const sweep  = 4 * Math.PI / 3;    // 240°
+
+  // Map margin to angle: -100% → startA, +100% → endA (clockwise)
+  const GMIN = -1.0, GMAX = 1.0;
+  const clamped = Math.max(GMIN, Math.min(GMAX, margin));
+  const t = (clamped - GMIN) / (GMAX - GMIN);
+  const needleA = startA + t * sweep;
+
+  // Dynamic color
+  const color = margin < 0 ? '#c8341f' : margin < 0.2 ? '#c88b1f' : '#2f7a4d';
+
+  // Background track
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, startA, endA, false);
+  ctx.strokeStyle = '#e5e1d8'; ctx.lineWidth = 20; ctx.lineCap = 'round'; ctx.stroke();
+
+  // Colored fill
+  if (t > 0.001) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, startA, needleA, false);
+    ctx.strokeStyle = color; ctx.lineWidth = 20; ctx.lineCap = 'round'; ctx.stroke();
+  }
+
+  // Zone tick marks (0% and 20%)
+  [{ v: 0, lbl: '0%' }, { v: 0.2, lbl: '20%' }].forEach(z => {
+    const zt = (z.v - GMIN) / (GMAX - GMIN);
+    const za = startA + zt * sweep;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx + (R - 12) * Math.cos(za), cy + (R - 12) * Math.sin(za));
+    ctx.lineTo(cx + (R + 8)  * Math.cos(za), cy + (R + 8)  * Math.sin(za));
+    ctx.strokeStyle = '#8a8a8a'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
+    ctx.fillStyle = '#8a8a8a'; ctx.font = '9px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(z.lbl, cx + (R + 22) * Math.cos(za), cy + (R + 22) * Math.sin(za));
+    ctx.restore();
+  });
+
+  // Needle line
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + (R - 6) * Math.cos(needleA), cy + (R - 6) * Math.sin(needleA));
+  ctx.strokeStyle = '#111111'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke();
+
+  // Center hub
+  ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#111111'; ctx.fill();
+
+  // Value text (large, centered)
+  const textY = cy - R * 0.52;
+  ctx.font = '600 42px "Fraunces", serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(fmtPct(margin), cx, textY);
+
+  // Sub-label
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillText('GP MARGIN', cx, textY + 34);
+
+  // Min / max labels at arc endpoints
+  ctx.font = '9px "IBM Plex Mono", monospace';
+  ctx.fillStyle = '#8a8a8a';
+  ctx.textAlign = 'center';
+  ctx.fillText('−100%', cx + (R + 24) * Math.cos(startA), cy + (R + 24) * Math.sin(startA));
+  ctx.fillText('+100%', cx + (R + 24) * Math.cos(endA),   cy + (R + 24) * Math.sin(endA));
+}
+
+// ------------- RENDER: ENROLLMENT SENSITIVITY -------------
 // ------------- RENDER: COMPARE (In-Person vs Hybrid) -------------
 let compareBarChart = null, deltaChart = null;
 
@@ -1083,96 +1319,6 @@ function renderCompareSection() {
       }
     }
   });
-}
-
-// ------------- RENDER: COST STRUCTURE (single program) -------------
-let stackChart = null;
-
-function populateStackProgramPicker() {
-  const host = document.getElementById('stackProgramPicker');
-  const sc = computeScenario(state.scenario, state.globalMult);
-  const progs = sc.rows.map(r => r.p.name).sort();
-  host.innerHTML = progs.map(n => `<option value="${n}">${n}</option>`).join('');
-  if (!state.stackProgram || !progs.includes(state.stackProgram)) {
-    state.stackProgram = progs[0];
-  }
-  host.value = state.stackProgram;
-  host.onchange = () => { state.stackProgram = host.value; renderStackChart(); };
-}
-
-function renderStackChart() {
-  const sc = computeScenario(state.scenario, state.globalMult);
-  populateStackProgramPicker();
-  const row = sc.rows.find(r => r.p.name === state.stackProgram);
-  if (!row) return;
-
-  const palette = {
-    'Direct staff costs':          '#111111',
-    'Rent and repairs':            '#4a4a4a',
-    'Equipment costs':             '#8a8a8a',
-    'Compute and SW':              '#c88b1f',
-    "Students' accreditation":     '#124734',
-    'Other - academics':           '#2f7a4d',
-    'Marketing and advertisements':'#c8341f',
-  };
-
-  const categories = [...COST_KEYS, 'Gross Profit'];
-  const pctData = COST_KEYS.map(k => row.rev > 0 ? (row.cogsByCat[k] / row.rev) * 100 : 0);
-  pctData.push(row.margin * 100);
-  const absData = COST_KEYS.map(k => row.cogsByCat[k]);
-  absData.push(row.gp);
-  const colors = COST_KEYS.map(k => palette[k]);
-  colors.push('#2f7a4d');
-  const labels = COST_KEYS.map(k => COST_SHORT[k]);
-  labels.push('Gross Profit');
-
-  const ctx = document.getElementById('stackChart').getContext('2d');
-  if (stackChart) stackChart.destroy();
-  stackChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: pctData,
-        backgroundColor: colors,
-        borderWidth: 0,
-        borderRadius: 2,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: c => {
-              const abs = absData[c.dataIndex];
-              return `${fmtKSH(abs)} KSH  (${c.parsed.x.toFixed(1)}% of revenue)`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: { grid: { color: '#eeeae0' }, ticks: { callback: v => v + '%' } },
-        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-      }
-    }
-  });
-
-  // Stats panel
-  document.getElementById('stackStatsName').textContent = row.p.name;
-  const cogsTotal = COST_KEYS.reduce((s, k) => s + row.cogsByCat[k], 0);
-  const biggestCat = COST_KEYS.reduce((a, b) => row.cogsByCat[a] > row.cogsByCat[b] ? a : b);
-  document.getElementById('stackStats').innerHTML = `
-    <table class="mono" style="width:100%; font-size:12px;">
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Revenue</td><td style="text-align:right">${fmtKSH(row.rev)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Total COGS</td><td style="text-align:right">${fmtKSH(cogsTotal)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">Gross Profit</td><td style="text-align:right;font-weight:600">${fmtKSH(row.gp)}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">GP Margin</td><td style="text-align:right;font-weight:600">${fmtPct(row.margin)}</td></tr>
-      <tr><td style="padding:8px 0 0;color:var(--ink-mute);border-top:1px solid var(--rule)">Largest cost</td><td style="text-align:right;padding-top:8px;border-top:1px solid var(--rule);font-weight:600">${COST_SHORT[biggestCat]}</td></tr>
-      <tr><td style="padding:4px 0;color:var(--ink-mute)">↳ % of revenue</td><td style="text-align:right">${fmtPct(row.cogsByCat[biggestCat] / row.rev)}</td></tr>
-    </table>
-  `;
 }
 
 // ------------- RENDER: WATERFALL -------------
@@ -1313,11 +1459,8 @@ function renderWaterfall() {
 // ------------- ORCHESTRATION -------------
 function renderAll() {
   renderKPIs();
-  renderScorecard();
-  populateProgramPicker();
-  renderSensitivity();
+  renderCards();
   renderCompareSection();
-  renderStackChart();
   renderWaterfall();
 }
 
