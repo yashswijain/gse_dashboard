@@ -73,9 +73,11 @@
     background: var(--bg);
     display: grid;
     grid-template-columns: 180px 1fr auto;
-    gap: 28px;
+    column-gap: 28px;
+    row-gap: 14px;
     align-items: center;
   }
+  .sliders-tray .reset { grid-row: span 2; align-self: center; }
   .sliders-label {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px; letter-spacing: 0.16em;
@@ -504,11 +506,16 @@
 
 <div class="sliders-tray">
   <div class="sliders-label">
-    <strong>Cost Adjusters</strong>
+    <strong>Variable Costs</strong>
     Global — applies everywhere
   </div>
   <div class="sliders-grid" id="globalSliders"></div>
   <button class="reset" id="resetGlobal">Reset</button>
+  <div class="sliders-label" style="border-left-color: var(--accent-2);">
+    <strong>Fixed OpEx</strong>
+    Admin overhead buckets
+  </div>
+  <div class="sliders-grid" id="opexSliders"></div>
 </div>
 
 <main>
@@ -522,10 +529,23 @@
     <div class="kpi-grid" id="kpiGrid"></div>
   </section>
 
-  <!-- ============ SECTION 2: PROGRAM CARDS ============ -->
+  <!-- ============ SECTION 2: WATERFALL ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">02</span>Course Scorecard</h2>
+      <h2><span class="num">02</span>Revenue → Operating Profit</h2>
+      <div class="caption">Full P&amp;L bridge per semester. Use the cost sliders above to see how each lever shifts the waterfall.</div>
+    </div>
+    <div class="panel">
+      <h3>P&amp;L Waterfall</h3>
+      <div class="note">Per semester · KSH · updates live with sliders</div>
+      <div class="chart-holder" style="height: 420px;"><canvas id="waterfallChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: PROGRAM CARDS ============ -->
+  <section>
+    <div class="section-head">
+      <h2><span class="num">03</span>Course Scorecard</h2>
       <div class="caption">14 programs grouped by health tier. Click any card to open a scenario explorer.</div>
     </div>
     <div id="cardTierGreen" class="card-tier">
@@ -551,10 +571,10 @@
     </div>
   </section>
 
-  <!-- ============ SECTION 3: IN-PERSON vs HYBRID ============ -->
+  <!-- ============ SECTION 4: IN-PERSON vs HYBRID ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">03</span>In-Person vs. Hybrid</h2>
+      <h2><span class="num">04</span>In-Person vs. Hybrid</h2>
       <div class="caption">Apply independent cost multipliers to Hybrid to model planning assumptions. In-Person baseline stays fixed.</div>
     </div>
     <div class="hybrid-sliders" id="hybridSliders"></div>
@@ -570,19 +590,6 @@
         <div class="note">Change in GP · positive = Hybrid better</div>
         <div class="chart-holder"><canvas id="deltaChart"></canvas></div>
       </div>
-    </div>
-  </section>
-
-  <!-- ============ SECTION 5: WATERFALL ============ -->
-  <section>
-    <div class="section-head">
-      <h2><span class="num">04</span>Revenue → Operating Profit</h2>
-      <div class="caption">Company-wide bridge from top-line revenue down to operating profit, per semester.</div>
-    </div>
-    <div class="panel">
-      <h3>P&amp;L Waterfall</h3>
-      <div class="note">Per semester · KSH millions</div>
-      <div class="chart-holder" style="height: 420px;"><canvas id="waterfallChart"></canvas></div>
     </div>
   </section>
 
@@ -672,11 +679,32 @@ const OPEX_ELASTIC = {
   'Marketing and advertisement':   'Marketing and advertisements',
 };
 
+// Fixed admin overhead buckets (sliders in second row)
+const OPEX_KEYS = [
+  'Administrative Personnel Costs',
+  'Insurance Cost',
+  'Compliance Cost',
+  'Professional Fees',
+  'Directors fees',
+  'Office Support expenses',
+  'Provision for Bad Debt',
+];
+const OPEX_SHORT = {
+  'Administrative Personnel Costs': 'Admin Staff',
+  'Insurance Cost':                  'Insurance',
+  'Compliance Cost':                 'Compliance',
+  'Professional Fees':               'Prof. Fees',
+  'Directors fees':                  'Directors',
+  'Office Support expenses':         'Office',
+  'Provision for Bad Debt':          'Bad Debt',
+};
+
 // Dashboard state
 const state = {
   scenario: 'In-Person',
   globalMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
   hybridMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  opexMult:   Object.fromEntries(OPEX_KEYS.map(k => [k, 1.0])),
 };
 
 // ------------- NUMBER FORMATTERS -------------
@@ -725,7 +753,7 @@ function computeProgram(p, mult) {
            fixedTotal, varPer, contribPer, breakeven, safety };
 }
 
-function computeScenario(scenarioKey, globalMult, hybridMultOverride=null) {
+function computeScenario(scenarioKey, globalMult, hybridMultOverride=null, opexMult=null) {
   const s = RAW_DATA[scenarioKey];
   if (!s) { console.error('computeScenario: unknown scenario key:', scenarioKey); return null; }
   const effMult = {};
@@ -736,21 +764,23 @@ function computeScenario(scenarioKey, globalMult, hybridMultOverride=null) {
   const totalRev = rows.reduce((a,r) => a + r.rev, 0);
   const totalCogs = rows.reduce((a,r) => a + r.cogs, 0);
   const totalGP = totalRev - totalCogs;
-  // OpEx: apply elastic mults
+  // OpEx: apply elastic mults and admin opex mults
   const opex = {};
   let opexTotal = 0;
   for (const [k, v] of Object.entries(s.opex)) {
+    if (k === 'Provision for Bad Debt') continue; // handled separately below
     const catKey = OPEX_ELASTIC[k];
-    const m = catKey ? effMult[catKey] : 1;
-    opex[k] = v * m;
+    const elasticM = catKey ? effMult[catKey] : 1;
+    const adminM = opexMult && (k in opexMult) ? opexMult[k] : 1;
+    opex[k] = v * elasticM * adminM;
     opexTotal += opex[k];
   }
-  // Provision for Bad Debt should track revenue (0.5%)
-  // It's already in opex — but re-scale to current revenue:
-  if ('Provision for Bad Debt' in opex) {
-    const newProv = totalRev * 0.005;
-    opexTotal = opexTotal - opex['Provision for Bad Debt'] + newProv;
+  // Provision for Bad Debt: 0.5% of revenue, scaled by opexMult
+  if ('Provision for Bad Debt' in s.opex) {
+    const adminM = opexMult && opexMult['Provision for Bad Debt'] != null ? opexMult['Provision for Bad Debt'] : 1;
+    const newProv = totalRev * 0.005 * adminM;
     opex['Provision for Bad Debt'] = newProv;
+    opexTotal += newProv;
   }
   const opProfit = totalGP - opexTotal;
   return { rows, totalRev, totalCogs, totalGP,
@@ -842,9 +872,38 @@ function buildHybridSliders() {
   });
 }
 
+function buildOpexSliders() {
+  const host = document.getElementById('opexSliders');
+  host.innerHTML = '';
+  OPEX_KEYS.forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'slider-item';
+    div.innerHTML = `
+      <span class="name">${OPEX_SHORT[k]}</span>
+      <input type="range" min="0" max="200" value="100" data-key="${k}" data-slider="opex">
+      <div class="val"><span>${OPEX_SHORT[k]}</span><span class="pct" data-show-ox="${k}">0%</span></div>
+    `;
+    host.appendChild(div);
+  });
+  host.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const v = parseInt(e.target.value) / 100;
+      state.opexMult[key] = v;
+      const span = document.querySelector(`[data-show-ox="${key}"]`);
+      if (!span) return;
+      const delta = (v - 1) * 100;
+      span.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
+      span.classList.remove('pos', 'neg');
+      if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
+      renderAll();
+    });
+  });
+}
+
 // ------------- RENDER: KPI TILES -------------
 function renderKPIs() {
-  const sc = computeScenario(state.scenario, state.globalMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
   const grid = document.getElementById('kpiGrid');
   const revPerStudent = sc.totalEnroll > 0 ? sc.totalRev / sc.totalEnroll : 0;
   const gpPerStudent  = sc.totalEnroll > 0 ? sc.totalGP  / sc.totalEnroll : 0;
@@ -872,7 +931,7 @@ function renderKPIs() {
 
 // ------------- RENDER: PROGRAM CARDS (Section 02) -------------
 function renderCards() {
-  const sc = computeScenario(state.scenario, state.globalMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
   const rows = sc.rows.map(r => ({
     name: r.p.name, type: r.p.type,
     margin: r.margin, enroll: r.p.enrollment, safety: r.safety,
@@ -927,7 +986,7 @@ let modalBaseRow = null;
 let modalLocalState = null;
 
 function openCardModal(progName, cardEl) {
-  const sc = computeScenario(state.scenario, state.globalMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
   const row = sc.rows.find(r => r.p.name === progName);
   if (!row) return;
 
@@ -1236,8 +1295,8 @@ function drawGauge(margin) {
 let compareBarChart = null, deltaChart = null;
 
 function renderCompareSection() {
-  const ipSC = computeScenario('In-Person', state.globalMult);
-  const hySC = computeScenario('Hybrid', state.globalMult, state.hybridMult);
+  const ipSC = computeScenario('In-Person', state.globalMult, null, state.opexMult);
+  const hySC = computeScenario('Hybrid', state.globalMult, state.hybridMult, state.opexMult);
 
   // Compare KPIs
   const compareHost = document.getElementById('compareKpiGrid');
@@ -1324,7 +1383,7 @@ function renderCompareSection() {
 // ------------- RENDER: WATERFALL -------------
 let waterfallChart = null;
 function renderWaterfall() {
-  const sc = computeScenario(state.scenario, state.globalMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
   // Build waterfall: Revenue, -COGS categories, GP, -OpEx categories, Op Profit
   // Group COGS: sum all; show as single "COGS" bar plus breakdown?
   // Better: Revenue → -Staff → -Rent → -Equipment → -Compute → -Accred → -Academics → -Marketing → GP → OpEx group → OP
@@ -1465,11 +1524,16 @@ function renderAll() {
 }
 
 
-// Reset global sliders
+// Reset global + opex sliders
 document.getElementById('resetGlobal').addEventListener('click', () => {
   COST_KEYS.forEach(k => state.globalMult[k] = 1.0);
   document.querySelectorAll('#globalSliders input[type=range]').forEach(inp => inp.value = 100);
   document.querySelectorAll('#globalSliders .pct').forEach(span => {
+    span.textContent = '0%'; span.classList.remove('pos','neg');
+  });
+  OPEX_KEYS.forEach(k => state.opexMult[k] = 1.0);
+  document.querySelectorAll('#opexSliders input[type=range]').forEach(inp => inp.value = 100);
+  document.querySelectorAll('#opexSliders .pct').forEach(span => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
   renderAll();
@@ -1477,6 +1541,7 @@ document.getElementById('resetGlobal').addEventListener('click', () => {
 
 // Init
 buildGlobalSliders();
+buildOpexSliders();
 buildHybridSliders();
 renderAll();
 
