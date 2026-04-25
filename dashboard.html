@@ -68,13 +68,15 @@
 
   /* ============ SLIDERS TRAY ============ */
   .sliders-tray {
+    border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
-    padding: 18px 40px;
+    padding: 14px 0;
+    margin: 14px 0;
     background: var(--bg);
     display: grid;
-    grid-template-columns: 180px 1fr auto;
-    column-gap: 28px;
-    row-gap: 14px;
+    grid-template-columns: 160px 1fr auto;
+    column-gap: 24px;
+    row-gap: 12px;
     align-items: center;
   }
   .sliders-tray .reset { grid-row: span 2; align-self: center; }
@@ -151,7 +153,7 @@
   /* ============ KPI TILES ============ */
   .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; border: 1px solid var(--rule-strong); }
   .kpi {
-    padding: 20px 22px;
+    padding: 10px 16px;
     border-right: 1px solid var(--rule-strong);
     background: var(--bg-panel);
     position: relative;
@@ -160,15 +162,15 @@
   .kpi .label {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--ink-mute); margin-bottom: 12px;
+    color: var(--ink-mute); margin-bottom: 4px;
   }
   .kpi .value {
     font-family: 'Fraunces', serif; font-weight: 500;
-    font-size: 30px; letter-spacing: -0.02em; line-height: 1;
+    font-size: 22px; letter-spacing: -0.02em; line-height: 1;
   }
-  .kpi .value .unit { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-mute); font-weight: 400; margin-left: 4px; }
+  .kpi .value .unit { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-mute); font-weight: 400; margin-left: 3px; }
   .kpi .sub {
-    margin-top: 8px; font-size: 11px; color: var(--ink-soft);
+    margin-top: 3px; font-size: 10px; color: var(--ink-soft);
     font-family: 'IBM Plex Mono', monospace;
   }
   .kpi .sub .delta { font-weight: 600; }
@@ -504,48 +506,39 @@
   </div>
 </div>
 
-<div class="sliders-tray">
-  <div class="sliders-label">
-    <strong>Variable Costs</strong>
-    Global — applies everywhere
-  </div>
-  <div class="sliders-grid" id="globalSliders"></div>
-  <button class="reset" id="resetGlobal">Reset</button>
-  <div class="sliders-label" style="border-left-color: var(--accent-2);">
-    <strong>Fixed OpEx</strong>
-    Admin overhead buckets
-  </div>
-  <div class="sliders-grid" id="opexSliders"></div>
-</div>
-
 <main>
 
-  <!-- ============ SECTION 1: P&L KPIs ============ -->
+  <!-- ============ SECTION 01: ORG LEVEL VIEW ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">01</span>P&amp;L Overview</h2>
-      <div class="caption">Per-semester totals across all 14 programs. Reflects current slider positions.</div>
+      <h2><span class="num">01</span>Org Level View</h2>
+      <div class="caption">Full P&amp;L snapshot. Adjust cost and OpEx levers — KPIs and waterfall update live.</div>
     </div>
     <div class="kpi-grid" id="kpiGrid"></div>
-  </section>
-
-  <!-- ============ SECTION 2: WATERFALL ============ -->
-  <section>
-    <div class="section-head">
-      <h2><span class="num">02</span>Revenue → Operating Profit</h2>
-      <div class="caption">Full P&amp;L bridge per semester. Use the cost sliders above to see how each lever shifts the waterfall.</div>
+    <div class="sliders-tray">
+      <div class="sliders-label">
+        <strong>Variable Costs</strong>
+        COGS adjusters
+      </div>
+      <div class="sliders-grid" id="globalSliders"></div>
+      <button class="reset" id="resetGlobal">Reset</button>
+      <div class="sliders-label" style="border-left-color: var(--accent-2);">
+        <strong>Fixed OpEx</strong>
+        Overhead adjusters
+      </div>
+      <div class="sliders-grid" id="opexSliders"></div>
     </div>
     <div class="panel">
       <h3>P&amp;L Waterfall</h3>
       <div class="note">Per semester · KSH · updates live with sliders</div>
-      <div class="chart-holder" style="height: 420px;"><canvas id="waterfallChart"></canvas></div>
+      <div class="chart-holder" style="height: 380px;"><canvas id="waterfallChart"></canvas></div>
     </div>
   </section>
 
-  <!-- ============ SECTION 3: PROGRAM CARDS ============ -->
+  <!-- ============ SECTION 02: COURSE LEVEL ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">03</span>Course Scorecard</h2>
+      <h2><span class="num">02</span>Course Level</h2>
       <div class="caption">14 programs grouped by health tier. Click any card to open a scenario explorer.</div>
     </div>
     <div id="cardTierGreen" class="card-tier">
@@ -571,10 +564,10 @@
     </div>
   </section>
 
-  <!-- ============ SECTION 4: IN-PERSON vs HYBRID ============ -->
+  <!-- ============ SECTION 03: COMPARISON ============ -->
   <section>
     <div class="section-head">
-      <h2><span class="num">04</span>In-Person vs. Hybrid</h2>
+      <h2><span class="num">03</span>In-Person vs. Hybrid</h2>
       <div class="caption">Apply independent cost multipliers to Hybrid to model planning assumptions. In-Person baseline stays fixed.</div>
     </div>
     <div class="hybrid-sliders" id="hybridSliders"></div>
@@ -679,8 +672,8 @@ const OPEX_ELASTIC = {
   'Marketing and advertisement':   'Marketing and advertisements',
 };
 
-// Fixed admin overhead buckets (sliders in second row)
-const OPEX_KEYS = [
+// Admin overhead bucket — all 7 line items share one slider key '__admin__'
+const ADMIN_OPEX_KEYS = [
   'Administrative Personnel Costs',
   'Insurance Cost',
   'Compliance Cost',
@@ -689,14 +682,26 @@ const OPEX_KEYS = [
   'Office Support expenses',
   'Provision for Bad Debt',
 ];
+const ADMIN_OPEX_SET = new Set(ADMIN_OPEX_KEYS);
+
+// Fixed OpEx slider keys: 1 bulk Admin + 6 fixed-other (decoupled from COGS Row 1)
+const OPEX_KEYS = [
+  '__admin__',
+  'Rent and repairs (fixed)',
+  'Direct staff costs (fixed)',
+  'Equipment costs (fixed)',
+  'Compute and SW (fixed)',
+  'Academics - other (fixed)',
+  'Marketing and advertisement',
+];
 const OPEX_SHORT = {
-  'Administrative Personnel Costs': 'Admin Staff',
-  'Insurance Cost':                  'Insurance',
-  'Compliance Cost':                 'Compliance',
-  'Professional Fees':               'Prof. Fees',
-  'Directors fees':                  'Directors',
-  'Office Support expenses':         'Office',
-  'Provision for Bad Debt':          'Bad Debt',
+  '__admin__':                   'Admin',
+  'Rent and repairs (fixed)':    'Rent',
+  'Direct staff costs (fixed)':  'Staff',
+  'Equipment costs (fixed)':     'Equipment',
+  'Compute and SW (fixed)':      'Compute',
+  'Academics - other (fixed)':   'Academics',
+  'Marketing and advertisement': 'Marketing',
 };
 
 // Dashboard state
@@ -764,20 +769,27 @@ function computeScenario(scenarioKey, globalMult, hybridMultOverride=null, opexM
   const totalRev = rows.reduce((a,r) => a + r.rev, 0);
   const totalCogs = rows.reduce((a,r) => a + r.cogs, 0);
   const totalGP = totalRev - totalCogs;
-  // OpEx: apply elastic mults and admin opex mults
+  // OpEx: Row 1 (COGS) no longer bleeds into OpEx.
+  // Admin items use the '__admin__' opexMult key (bulk).
+  // Fixed-other items (OPEX_ELASTIC keys) use their own opexMult entry.
   const opex = {};
   let opexTotal = 0;
   for (const [k, v] of Object.entries(s.opex)) {
-    if (k === 'Provision for Bad Debt') continue; // handled separately below
-    const catKey = OPEX_ELASTIC[k];
-    const elasticM = catKey ? effMult[catKey] : 1;
-    const adminM = opexMult && (k in opexMult) ? opexMult[k] : 1;
-    opex[k] = v * elasticM * adminM;
+    if (k === 'Provision for Bad Debt') continue; // handled separately
+    let m = 1;
+    if (opexMult) {
+      if (ADMIN_OPEX_SET.has(k)) {
+        m = opexMult['__admin__'] ?? 1;
+      } else if (k in opexMult) {
+        m = opexMult[k];
+      }
+    }
+    opex[k] = v * m;
     opexTotal += opex[k];
   }
-  // Provision for Bad Debt: 0.5% of revenue, scaled by opexMult
+  // Provision for Bad Debt: 0.5% of revenue, scaled by Admin multiplier
   if ('Provision for Bad Debt' in s.opex) {
-    const adminM = opexMult && opexMult['Provision for Bad Debt'] != null ? opexMult['Provision for Bad Debt'] : 1;
+    const adminM = opexMult ? (opexMult['__admin__'] ?? 1) : 1;
     const newProv = totalRev * 0.005 * adminM;
     opex['Provision for Bad Debt'] = newProv;
     opexTotal += newProv;
