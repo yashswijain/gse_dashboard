@@ -380,6 +380,32 @@
   }
   .panel .chart-holder { position: relative; height: 320px; }
 
+  /* Compare table (Section 03) */
+  .compare-table { display: flex; flex-direction: column; overflow: hidden; }
+  .ct-header {
+    display: grid; grid-template-columns: 1fr 62px 62px;
+    gap: 4px; padding: 0 10px 6px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-mute);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .ct-header span:not(:first-child) { text-align: right; }
+  .ct-row {
+    display: grid; grid-template-columns: 1fr 62px 62px;
+    gap: 4px; padding: 0 10px; align-items: center;
+    border-bottom: 1px solid var(--rule); box-sizing: border-box;
+  }
+  .ct-row .prog {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ct-row .mg {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    font-weight: 600; text-align: right;
+  }
+  .ct-row .mg.pos { color: var(--green); }
+  .ct-row .mg.neg { color: var(--red); }
+
   /* ============ PROGRAM SELECT ============ */
   select.program-picker {
     font-family: 'IBM Plex Mono', monospace;
@@ -591,10 +617,20 @@
       <div class="sliders-grid" id="opexSliders3"></div>
     </div>
     <div class="compare-kpi-grid" id="compareKpiGrid"></div>
-    <div class="panel">
-      <h3>Hybrid Delta by Program</h3>
-      <div class="note">Change in GP (Hybrid − In-Person) · sorted by impact · KSH</div>
-      <div class="chart-holder" style="height:380px;"><canvas id="deltaChart"></canvas></div>
+    <div class="chart-row aside">
+      <div class="panel">
+        <h3>Hybrid Delta by Program</h3>
+        <div class="note">Change in GP (Hybrid − In-Person) · sorted by impact · KSH</div>
+        <div class="chart-holder" style="height:380px;"><canvas id="deltaChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>GP Margin by Program</h3>
+        <div class="note">In-Person vs. Hybrid · aligned to chart</div>
+        <div class="ct-header">
+          <span>Program</span><span>IP</span><span>HY</span>
+        </div>
+        <div id="compareTable" class="compare-table"></div>
+      </div>
     </div>
   </section>
 
@@ -1352,12 +1388,48 @@ function renderCompareSection() {
     pair('Gross Profit', ipSC.totalGP, hySC.totalGP) +
     pair('Operating Profit', ipSC.opProfit, hySC.opProfit);
 
-  // Delta chart only
+  // Build sorted delta array with margins for both scenarios
   const labels = ipSC.rows.map(r => r.p.name.replace(/^Program - /, ''));
   const ipGP = ipSC.rows.map(r => r.gp);
   const hyGP = hySC.rows.map(r => r.gp);
-  const deltas = ipSC.rows.map((r,i) => ({ name: labels[i], d: hyGP[i] - ipGP[i] }))
-                          .sort((a,b) => b.d - a.d);
+  const deltas = ipSC.rows.map((r, i) => ({
+    name: labels[i],
+    d: hyGP[i] - ipGP[i],
+    ipMargin: r.margin,
+    hyMargin: hySC.rows[i].margin,
+  })).sort((a, b) => b.d - a.d);
+
+  // Build comparison table (rows aligned to chart bars via afterRender plugin)
+  const tableEl = document.getElementById('compareTable');
+  tableEl.style.paddingTop = '0px';
+  tableEl.innerHTML = deltas.map(d => {
+    const ipCls = d.ipMargin >= 0 ? 'pos' : 'neg';
+    const hyCls = d.hyMargin >= 0 ? 'pos' : 'neg';
+    return `<div class="ct-row">
+      <span class="prog">${d.name}</span>
+      <span class="mg ${ipCls}">${fmtPct(d.ipMargin)}</span>
+      <span class="mg ${hyCls}">${fmtPct(d.hyMargin)}</span>
+    </div>`;
+  }).join('');
+
+  // Chart.js plugin: after render, align table rows to bar positions
+  const alignPlugin = {
+    id: 'alignTable',
+    afterRender(chart) {
+      const meta = chart.getDatasetMeta(0);
+      if (!meta.data.length) return;
+      const rows = tableEl.querySelectorAll('.ct-row');
+      if (!rows.length) return;
+      const slotH = meta.data.length > 1
+        ? Math.abs(meta.data[1].y - meta.data[0].y)
+        : chart.chartArea.height / meta.data.length;
+      const topOffset = meta.data[0].y - slotH / 2 - tableEl.getBoundingClientRect().top
+                      + chart.canvas.getBoundingClientRect().top;
+      tableEl.style.paddingTop = Math.max(0, topOffset) + 'px';
+      rows.forEach(row => { row.style.height = slotH + 'px'; });
+    }
+  };
+
   const ctx = document.getElementById('deltaChart').getContext('2d');
   if (deltaChart) deltaChart.destroy();
   deltaChart = new Chart(ctx, {
@@ -1378,9 +1450,10 @@ function renderCompareSection() {
       },
       scales: {
         x: { grid: { color: '#eeeae0' }, ticks: { callback: v => fmtKSH(v) } },
-        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        y: { grid: { display: false }, ticks: { display: false } }
       }
-    }
+    },
+    plugins: [alignPlugin]
   });
 }
 
