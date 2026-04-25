@@ -395,10 +395,16 @@
   select.program-picker:focus { outline: none; border-color: var(--accent); }
 
   /* hybrid section controls */
+  .hybrid-sliders-tray {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 0; margin-bottom: 16px;
+    display: grid; grid-template-columns: 160px 1fr auto;
+    column-gap: 24px; align-items: center;
+  }
   .hybrid-sliders {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 16px 22px; margin-bottom: 20px; padding: 16px 20px;
-    background: var(--bg); border: 1px dashed var(--ink-mute);
+    gap: 16px 22px;
   }
   .hybrid-sliders .slider-item .name { color: var(--ink); }
   .hybrid-sliders input[type=range]::-webkit-slider-thumb { background: var(--accent-2); }
@@ -409,7 +415,7 @@
     gap: 0; border: 1px solid var(--rule-strong); margin-bottom: 20px;
   }
   .compare-kpi {
-    padding: 18px 22px;
+    padding: 10px 16px;
     border-right: 1px solid var(--rule-strong);
     background: var(--bg-panel);
   }
@@ -419,22 +425,22 @@
     letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute);
   }
   .compare-kpi .pair {
-    display: flex; align-items: baseline; gap: 20px; margin-top: 10px;
+    display: flex; align-items: baseline; gap: 20px; margin-top: 5px;
   }
   .compare-kpi .item { flex: 1; }
   .compare-kpi .item .name {
     font-family: 'IBM Plex Mono', monospace; font-size: 10px;
     letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .compare-kpi .item .v {
-    font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px;
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 18px;
     letter-spacing: -0.01em;
   }
   .compare-kpi .delta-pill {
-    display: inline-block; padding: 3px 8px; font-size: 11px;
+    display: inline-block; padding: 2px 7px; font-size: 11px;
     font-family: 'IBM Plex Mono', monospace; font-weight: 600;
-    background: var(--ink); color: var(--bg); margin-top: 8px;
+    background: var(--ink); color: var(--bg); margin-top: 4px;
   }
   .compare-kpi .delta-pill.pos { background: var(--green); }
   .compare-kpi .delta-pill.neg { background: var(--red); }
@@ -483,8 +489,8 @@
   }
   @media (max-width: 720px) {
     main { padding: 20px; }
-    .banner, .sliders-tray, footer { padding-left: 20px; padding-right: 20px; }
-    .sliders-tray { grid-template-columns: 1fr; }
+    .banner, footer { padding-left: 20px; padding-right: 20px; }
+    .sliders-tray, .hybrid-sliders-tray { grid-template-columns: 1fr; }
     .sliders-grid { grid-template-columns: repeat(2, 1fr); }
     .hybrid-sliders { grid-template-columns: repeat(2, 1fr); }
     .kpi-grid { grid-template-columns: 1fr 1fr; }
@@ -568,21 +574,21 @@
   <section>
     <div class="section-head">
       <h2><span class="num">03</span>In-Person vs. Hybrid</h2>
-      <div class="caption">Apply independent cost multipliers to Hybrid to model planning assumptions. In-Person baseline stays fixed.</div>
+      <div class="caption">Apply independent cost multipliers to Hybrid. In-Person baseline stays fixed.</div>
     </div>
-    <div class="hybrid-sliders" id="hybridSliders"></div>
+    <div class="hybrid-sliders-tray">
+      <div class="sliders-label" style="border-left-color: var(--accent-2);">
+        <strong>Hybrid Costs</strong>
+        Additional vs. In-Person
+      </div>
+      <div class="hybrid-sliders" id="hybridSliders"></div>
+      <button class="reset" id="resetHybrid">Reset</button>
+    </div>
     <div class="compare-kpi-grid" id="compareKpiGrid"></div>
-    <div class="chart-row two">
-      <div class="panel">
-        <h3>Per-Program Gross Profit: In-Person vs. Hybrid</h3>
-        <div class="note">Bar chart · KSH per semester</div>
-        <div class="chart-holder"><canvas id="compareBarChart"></canvas></div>
-      </div>
-      <div class="panel">
-        <h3>Hybrid Delta by Program</h3>
-        <div class="note">Change in GP · positive = Hybrid better</div>
-        <div class="chart-holder"><canvas id="deltaChart"></canvas></div>
-      </div>
+    <div class="panel">
+      <h3>Hybrid Delta by Program</h3>
+      <div class="note">Change in GP (Hybrid − In-Person) · sorted by impact · KSH</div>
+      <div class="chart-holder" style="height:380px;"><canvas id="deltaChart"></canvas></div>
     </div>
   </section>
 
@@ -1304,7 +1310,7 @@ function drawGauge(margin) {
 
 // ------------- RENDER: ENROLLMENT SENSITIVITY -------------
 // ------------- RENDER: COMPARE (In-Person vs Hybrid) -------------
-let compareBarChart = null, deltaChart = null;
+let deltaChart = null;
 
 function renderCompareSection() {
   const ipSC = computeScenario('In-Person', state.globalMult, null, state.opexMult);
@@ -1317,7 +1323,7 @@ function renderCompareSection() {
     const pct = ip !== 0 ? delta / Math.abs(ip) : 0;
     const cls = delta > 0 ? 'pos' : (delta < 0 ? 'neg' : '');
     const deltaText = isPct ? ((delta >= 0 ? '+' : '') + (delta*100).toFixed(1) + 'pp')
-                            : (fmtSigned(delta) + (isPct ? '' : ` (${(pct*100).toFixed(1)}%)`));
+                            : (fmtSigned(delta) + ` (${(pct*100).toFixed(1)}%)`);
     return `
       <div class="compare-kpi">
         <div class="label">${label}</div>
@@ -1333,42 +1339,15 @@ function renderCompareSection() {
     pair('Gross Profit', ipSC.totalGP, hySC.totalGP) +
     pair('Operating Profit', ipSC.opProfit, hySC.opProfit);
 
-  // Per-program bar
+  // Delta chart only
   const labels = ipSC.rows.map(r => r.p.name.replace(/^Program - /, ''));
   const ipGP = ipSC.rows.map(r => r.gp);
   const hyGP = hySC.rows.map(r => r.gp);
-
-  const ctx1 = document.getElementById('compareBarChart').getContext('2d');
-  if (compareBarChart) compareBarChart.destroy();
-  compareBarChart = new Chart(ctx1, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'In-Person', data: ipGP, backgroundColor: '#111111', barPercentage: 0.85, categoryPercentage: 0.7 },
-        { label: 'Hybrid',    data: hyGP, backgroundColor: '#c8341f', barPercentage: 0.85, categoryPercentage: 0.7 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      plugins: {
-        legend: { position: 'top', align: 'end',
-          labels: { font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 12, usePointStyle: false } },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtKSH(c.parsed.x)} KSH` } }
-      },
-      scales: {
-        x: { grid: { color: '#eeeae0' }, ticks: { callback: v => fmtKSH(v) } },
-        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
-      }
-    }
-  });
-
-  // Delta bar
   const deltas = ipSC.rows.map((r,i) => ({ name: labels[i], d: hyGP[i] - ipGP[i] }))
                           .sort((a,b) => b.d - a.d);
-  const ctx2 = document.getElementById('deltaChart').getContext('2d');
+  const ctx = document.getElementById('deltaChart').getContext('2d');
   if (deltaChart) deltaChart.destroy();
-  deltaChart = new Chart(ctx2, {
+  deltaChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: deltas.map(d => d.name),
@@ -1549,6 +1528,15 @@ document.getElementById('resetGlobal').addEventListener('click', () => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
   renderAll();
+});
+
+document.getElementById('resetHybrid').addEventListener('click', () => {
+  COST_KEYS.forEach(k => state.hybridMult[k] = 1.0);
+  document.querySelectorAll('#hybridSliders input[type=range]').forEach(inp => inp.value = 100);
+  document.querySelectorAll('#hybridSliders [data-show-h]').forEach(span => {
+    span.textContent = '0%'; span.classList.remove('pos','neg');
+  });
+  renderCompareSection();
 });
 
 // Init
