@@ -177,7 +177,6 @@
   .kpi .sub .delta.pos { color: var(--green); }
   .kpi .sub .delta.neg { color: var(--red); }
 
-  /* ============ SCORECARD ============ */
   /* ============ PROGRAM CARDS (SECTION 02) ============ */
   .card-tier { margin-bottom: 32px; }
   .tier-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -247,7 +246,7 @@
 
   .card-modal-box {
     position: fixed; top: 50%; left: 50%;
-    width: 700px; max-height: 90vh;
+    width: 700px; max-width: 95vw; max-height: 90vh;
     background: var(--bg-panel); border: 1px solid var(--rule-strong);
     overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.28);
     will-change: transform, opacity;
@@ -518,12 +517,16 @@
     main { padding: 20px; }
     .banner, footer { padding-left: 20px; padding-right: 20px; }
     .sliders-tray, .hybrid-sliders-tray { grid-template-columns: 1fr; }
+    .sliders-tray .reset, .hybrid-sliders-tray .reset { grid-row: span 1; }
     .sliders-grid { grid-template-columns: repeat(2, 1fr); }
     .hybrid-sliders { grid-template-columns: repeat(2, 1fr); }
     .kpi-grid { grid-template-columns: 1fr 1fr; }
     .kpi:nth-child(3n) { border-right: 1px solid var(--rule-strong); }
     .kpi:nth-child(2n) { border-right: 0; }
     .compare-kpi-grid { grid-template-columns: 1fr; }
+    .modal-split-area { grid-template-columns: 1fr; }
+    .modal-cost-half { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .modal-sliders-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -554,7 +557,7 @@
         COGS adjusters
       </div>
       <div class="sliders-grid" id="globalSliders"></div>
-      <button class="reset" id="resetGlobal">Reset</button>
+      <button class="reset" id="resetGlobal" aria-label="Reset global cost sliders">Reset</button>
       <div class="sliders-label" style="border-left-color: var(--accent-2);">
         <strong>Fixed OpEx</strong>
         Overhead adjusters
@@ -564,7 +567,7 @@
     <div class="panel">
       <h3>P&amp;L Waterfall</h3>
       <div class="note">Per semester · KSH · updates live with sliders</div>
-      <div class="chart-holder" style="height: 380px;"><canvas id="waterfallChart"></canvas></div>
+      <div class="chart-holder" style="height: 380px;"><canvas id="waterfallChart" role="img" aria-label="P&amp;L waterfall chart showing revenue to operating profit breakdown"></canvas></div>
     </div>
   </section>
 
@@ -609,7 +612,7 @@
         Additional vs. In-Person
       </div>
       <div class="hybrid-sliders" id="hybridSliders"></div>
-      <button class="reset" id="resetHybrid">Reset</button>
+      <button class="reset" id="resetHybrid" aria-label="Reset hybrid cost sliders">Reset</button>
       <div class="sliders-label" style="border-left-color: var(--accent);">
         <strong>Fixed OpEx</strong>
         Overhead adjusters
@@ -621,7 +624,7 @@
       <div class="panel">
         <h3>Hybrid Delta by Program</h3>
         <div class="note">Change in GP (Hybrid − In-Person) · sorted by impact · KSH</div>
-        <div class="chart-holder" style="height:380px;"><canvas id="deltaChart"></canvas></div>
+        <div class="chart-holder" style="height:380px;"><canvas id="deltaChart" role="img" aria-label="Hybrid vs In-Person gross profit delta by program"></canvas></div>
       </div>
       <div class="panel">
         <h3>GP Margin by Program</h3>
@@ -638,8 +641,8 @@
 
 <!-- ============ CARD MODAL ============ -->
 <div id="cardModalOverlay" class="card-modal-overlay">
-  <div id="cardModalBox" class="card-modal-box">
-    <button class="modal-close-btn" id="closeCardModal">×</button>
+  <div id="cardModalBox" class="card-modal-box" role="dialog" aria-modal="true" aria-label="Program scenario explorer">
+    <button class="modal-close-btn" id="closeCardModal" aria-label="Close modal">×</button>
     <div class="modal-header">
       <span class="modal-prog-name" id="modalProgName">—</span>
       <span class="card-badge" id="modalBadge">D</span>
@@ -652,7 +655,7 @@
       </div>
       <div class="modal-gauge-half">
         <div class="modal-panel-title">GP Margin</div>
-        <canvas id="gaugeCanvas" width="310" height="272"></canvas>
+        <canvas id="gaugeCanvas" width="310" height="272" role="img" aria-label="GP margin gauge"></canvas>
       </div>
     </div>
     <div class="modal-sliders-area">
@@ -708,16 +711,6 @@ const COST_SHORT = {
   "Students' accreditation": 'Accred.',
   'Other - academics': 'Academics',
   'Marketing and advertisements': 'Marketing',
-};
-
-// OpEx keys that are elastic to the same cost categories
-const OPEX_ELASTIC = {
-  'Rent and repairs (fixed)':      'Rent and repairs',
-  'Compute and SW (fixed)':        'Compute and SW',
-  'Equipment costs (fixed)':       'Equipment costs',
-  'Direct staff costs (fixed)':    'Direct staff costs',
-  'Academics - other (fixed)':     'Other - academics',
-  'Marketing and advertisement':   'Marketing and advertisements',
 };
 
 // Admin overhead bucket — all 7 line items share one slider key '__admin__'
@@ -787,13 +780,9 @@ function computeProgram(p, mult) {
   const revPer = p.enrollment > 0 ? rev/p.enrollment : 0;
   const gpPer = p.enrollment > 0 ? gp/p.enrollment : 0;
   const cogsPer = p.enrollment > 0 ? cogs/p.enrollment : 0;
-  // Breakeven: smallest N such that N * revPer > N * cogsPer (i.e. any N if margin>0)
-  // But COGS includes fixed-per-program as well as per-student. Here all costs are
-  // at current enrollment, so scaling assumes costs scale linearly with N.
-  // Contribution-margin breakeven then = 0 if rev>cogs... which isn't useful.
-  // MORE USEFUL: fixed portion vs variable portion. We approximate by treating
-  // Rent, Equipment, Compute, Staff as semi-fixed at current spend level, and
-  // Accreditation + Marketing as per-student. Breakeven = fixed / (revPer - variablePer).
+  // Breakeven via contribution-margin method:
+  // Semi-fixed: Staff, Rent, Equipment, Compute, Academics
+  // Variable (per-student): Accreditation, Marketing
   const FIXED_KEYS = ['Direct staff costs','Rent and repairs','Equipment costs','Compute and SW','Other - academics'];
   const VAR_KEYS   = ["Students' accreditation",'Marketing and advertisements'];
   const fixedTotal = FIXED_KEYS.reduce((s,k) => s + cogsByCat[k], 0);
@@ -808,7 +797,7 @@ function computeProgram(p, mult) {
 
 function computeScenario(scenarioKey, globalMult, hybridMultOverride=null, opexMult=null) {
   const s = RAW_DATA[scenarioKey];
-  if (!s) { console.error('computeScenario: unknown scenario key:', scenarioKey); return null; }
+  if (!s) return null;
   const effMult = {};
   for (const k of COST_KEYS) {
     effMult[k] = globalMult[k] * (scenarioKey === 'Hybrid' && hybridMultOverride ? hybridMultOverride[k] : 1);
@@ -817,9 +806,8 @@ function computeScenario(scenarioKey, globalMult, hybridMultOverride=null, opexM
   const totalRev = rows.reduce((a,r) => a + r.rev, 0);
   const totalCogs = rows.reduce((a,r) => a + r.cogs, 0);
   const totalGP = totalRev - totalCogs;
-  // OpEx: Row 1 (COGS) no longer bleeds into OpEx.
   // Admin items use the '__admin__' opexMult key (bulk).
-  // Fixed-other items (OPEX_ELASTIC keys) use their own opexMult entry.
+  // Fixed-other items use their own opexMult entry.
   const opex = {};
   let opexTotal = 0;
   for (const [k, v] of Object.entries(s.opex)) {
@@ -862,7 +850,7 @@ function healthScore(row, totalGP) {
 
   // 2. GP Contribution (40%) — diminishing returns on portfolio GP share
   //    k=0.08 means 8% GP share = half-score; asymptotes to 1.0
-  const gpShare = totalGP > 0 ? Math.max(0, row.gp / totalGP) : 0;
+  const gpShare = (totalGP > 0 && row.gp > 0) ? row.gp / totalGP : 0;
   const contribScore = gpShare / (gpShare + 0.08);
 
   return 0.6 * marginScore + 0.4 * contribScore;
@@ -950,6 +938,7 @@ function setOpexMult(key, v, skipRender=false) {
 
 function buildOpexSliders(hostId) {
   const host = document.getElementById(hostId);
+  if (!host) return;
   host.innerHTML = '';
   OPEX_KEYS.forEach(k => {
     const div = document.createElement('div');
@@ -971,6 +960,7 @@ function buildOpexSliders(hostId) {
 // ------------- RENDER: KPI TILES -------------
 function renderKPIs() {
   const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  if (!sc) return;
   const grid = document.getElementById('kpiGrid');
   const revPerStudent = sc.totalEnroll > 0 ? sc.totalRev / sc.totalEnroll : 0;
   const gpPerStudent  = sc.totalEnroll > 0 ? sc.totalGP  / sc.totalEnroll : 0;
@@ -999,6 +989,7 @@ function renderKPIs() {
 // ------------- RENDER: PROGRAM CARDS (Section 02) -------------
 function renderCards() {
   const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  if (!sc) return;
   const rows = sc.rows.map(r => ({
     name: r.p.name, type: r.p.type,
     margin: r.margin, enroll: r.p.enrollment, safety: r.safety,
@@ -1045,6 +1036,8 @@ function renderCards() {
     const host = document.getElementById(`cards${tier}`);
     host.innerHTML = '';
     arr.forEach(r => host.appendChild(buildCard(r)));
+    const tierBlock = document.getElementById(`cardTier${tier}`);
+    if (tierBlock) tierBlock.style.display = arr.length === 0 ? 'none' : '';
   });
 }
 
@@ -1119,6 +1112,9 @@ function closeCardModal() {
 document.getElementById('closeCardModal').addEventListener('click', closeCardModal);
 document.getElementById('cardModalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('cardModalOverlay')) closeCardModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('cardModalOverlay').classList.contains('active')) closeCardModal();
 });
 
 // ------------- MODAL: BUILD SLIDERS -------------
@@ -1279,6 +1275,7 @@ function drawGauge(margin) {
   const canvas = document.getElementById('gaugeCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
@@ -1368,6 +1365,7 @@ function renderCompareSection() {
   const ipSC = computeScenario('In-Person', BASE_MULT, null, null);
   // Hybrid picks up hybridMult + opexMult only
   const hySC = computeScenario('Hybrid', BASE_MULT, state.hybridMult, state.opexMult);
+  if (!ipSC || !hySC) return;
 
   // Compare KPIs
   const compareHost = document.getElementById('compareKpiGrid');
@@ -1473,10 +1471,8 @@ function renderCompareSection() {
 let waterfallChart = null;
 function renderWaterfall() {
   const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
-  // Build waterfall: Revenue, -COGS categories, GP, -OpEx categories, Op Profit
-  // Group COGS: sum all; show as single "COGS" bar plus breakdown?
-  // Better: Revenue → -Staff → -Rent → -Equipment → -Compute → -Accred → -Academics → -Marketing → GP → OpEx group → OP
-  // For readability, group COGS into 2-3 buckets and OpEx into 2 buckets
+  if (!sc) return;
+  // Build waterfall: Revenue → COGS categories → GP → OpEx → Op Profit
   const cogsTotal = Object.fromEntries(COST_KEYS.map(k => [k, 0]));
   sc.rows.forEach(r => { for (const k of COST_KEYS) cogsTotal[k] += r.cogsByCat[k]; });
   const adminOpex = ['Administrative Personnel Costs','Insurance Cost','Compliance Cost',
