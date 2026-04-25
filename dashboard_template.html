@@ -1360,10 +1360,14 @@ function drawGauge(margin) {
 // ------------- RENDER: ENROLLMENT SENSITIVITY -------------
 // ------------- RENDER: COMPARE (In-Person vs Hybrid) -------------
 let deltaChart = null;
+let compareOrder = null; // locked on first render, never re-sorted
+const BASE_MULT = Object.fromEntries(COST_KEYS.map(k => [k, 1.0]));
 
 function renderCompareSection() {
-  const ipSC = computeScenario('In-Person', state.globalMult, null, state.opexMult);
-  const hySC = computeScenario('Hybrid', state.globalMult, state.hybridMult, state.opexMult);
+  // In-Person is always baseline — no sliders affect it in this section
+  const ipSC = computeScenario('In-Person', BASE_MULT, null, null);
+  // Hybrid picks up hybridMult + opexMult only
+  const hySC = computeScenario('Hybrid', BASE_MULT, state.hybridMult, state.opexMult);
 
   // Compare KPIs
   const compareHost = document.getElementById('compareKpiGrid');
@@ -1388,16 +1392,24 @@ function renderCompareSection() {
     pair('Gross Profit', ipSC.totalGP, hySC.totalGP) +
     pair('Operating Profit', ipSC.opProfit, hySC.opProfit);
 
-  // Build sorted delta array with margins for both scenarios
+  // Build delta array with margins
   const labels = ipSC.rows.map(r => r.p.name.replace(/^Program - /, ''));
   const ipGP = ipSC.rows.map(r => r.gp);
   const hyGP = hySC.rows.map(r => r.gp);
-  const deltas = ipSC.rows.map((r, i) => ({
+  const deltaMap = Object.fromEntries(ipSC.rows.map((r, i) => [labels[i], {
     name: labels[i],
     d: hyGP[i] - ipGP[i],
     ipMargin: r.margin,
     hyMargin: hySC.rows[i].margin,
-  })).sort((a, b) => b.d - a.d);
+  }]));
+
+  // Lock sort order on first render (baseline deltas), never re-sort
+  if (!compareOrder) {
+    compareOrder = Object.values(deltaMap)
+      .sort((a, b) => b.d - a.d)
+      .map(d => d.name);
+  }
+  const deltas = compareOrder.map(name => deltaMap[name]);
 
   // Build comparison table (rows aligned to chart bars via afterRender plugin)
   const tableEl = document.getElementById('compareTable');
