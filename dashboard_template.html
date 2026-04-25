@@ -400,8 +400,9 @@
     border-bottom: 1px solid var(--rule);
     padding: 14px 0; margin-bottom: 16px;
     display: grid; grid-template-columns: 160px 1fr auto;
-    column-gap: 24px; align-items: center;
+    column-gap: 24px; row-gap: 12px; align-items: center;
   }
+  .hybrid-sliders-tray .reset { grid-row: span 2; align-self: center; }
   .hybrid-sliders {
     display: grid; grid-template-columns: repeat(7, 1fr);
     gap: 16px 22px;
@@ -583,6 +584,11 @@
       </div>
       <div class="hybrid-sliders" id="hybridSliders"></div>
       <button class="reset" id="resetHybrid">Reset</button>
+      <div class="sliders-label" style="border-left-color: var(--accent);">
+        <strong>Fixed OpEx</strong>
+        Overhead adjusters
+      </div>
+      <div class="sliders-grid" id="opexSliders3"></div>
     </div>
     <div class="compare-kpi-grid" id="compareKpiGrid"></div>
     <div class="panel">
@@ -890,8 +896,24 @@ function buildHybridSliders() {
   });
 }
 
-function buildOpexSliders() {
-  const host = document.getElementById('opexSliders');
+// Syncs state + ALL opex slider UI instances (Section 01 + Section 03), then re-renders
+function setOpexMult(key, v, skipRender=false) {
+  state.opexMult[key] = v;
+  const delta = (v - 1) * 100;
+  const text = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
+  document.querySelectorAll(`[data-show-ox="${key}"]`).forEach(span => {
+    span.textContent = text;
+    span.classList.remove('pos', 'neg');
+    if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
+  });
+  document.querySelectorAll(`input[data-slider="opex"][data-key="${key}"]`).forEach(inp => {
+    inp.value = Math.round(v * 100);
+  });
+  if (!skipRender) renderAll();
+}
+
+function buildOpexSliders(hostId) {
+  const host = document.getElementById(hostId);
   host.innerHTML = '';
   OPEX_KEYS.forEach(k => {
     const div = document.createElement('div');
@@ -905,16 +927,7 @@ function buildOpexSliders() {
   });
   host.querySelectorAll('input[type=range]').forEach(inp => {
     inp.addEventListener('input', e => {
-      const key = e.target.dataset.key;
-      const v = parseInt(e.target.value) / 100;
-      state.opexMult[key] = v;
-      const span = document.querySelector(`[data-show-ox="${key}"]`);
-      if (!span) return;
-      const delta = (v - 1) * 100;
-      span.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
-      span.classList.remove('pos', 'neg');
-      if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
-      renderAll();
+      setOpexMult(e.target.dataset.key, parseInt(e.target.value) / 100);
     });
   });
 }
@@ -1522,11 +1535,7 @@ document.getElementById('resetGlobal').addEventListener('click', () => {
   document.querySelectorAll('#globalSliders .pct').forEach(span => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
-  OPEX_KEYS.forEach(k => state.opexMult[k] = 1.0);
-  document.querySelectorAll('#opexSliders input[type=range]').forEach(inp => inp.value = 100);
-  document.querySelectorAll('#opexSliders .pct').forEach(span => {
-    span.textContent = '0%'; span.classList.remove('pos','neg');
-  });
+  OPEX_KEYS.forEach(k => setOpexMult(k, 1.0, true));
   renderAll();
 });
 
@@ -1536,12 +1545,14 @@ document.getElementById('resetHybrid').addEventListener('click', () => {
   document.querySelectorAll('#hybridSliders [data-show-h]').forEach(span => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
-  renderCompareSection();
+  OPEX_KEYS.forEach(k => setOpexMult(k, 1.0, true));
+  renderAll();
 });
 
 // Init
 buildGlobalSliders();
-buildOpexSliders();
+buildOpexSliders('opexSliders');
+buildOpexSliders('opexSliders3');
 buildHybridSliders();
 renderAll();
 
