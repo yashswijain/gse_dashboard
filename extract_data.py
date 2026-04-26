@@ -146,7 +146,7 @@ def set_scenario_and_recalc(xlsx_path, work_path, scenario):
 tell application "Microsoft Excel"
     set wb to open workbook workbook file name POSIX file "{abs_path}"
     set ws to sheet "Summary" of wb
-    set value of cell "C5" of ws to "{scenario}"
+    set value of cell "C3" of ws to "{scenario}"
     calculate
     delay 5
     calculate
