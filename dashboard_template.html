@@ -1475,43 +1475,61 @@ function renderWaterfall() {
   // Build waterfall: Revenue → COGS categories → GP → OpEx → Op Profit
   const cogsTotal = Object.fromEntries(COST_KEYS.map(k => [k, 0]));
   sc.rows.forEach(r => { for (const k of COST_KEYS) cogsTotal[k] += r.cogsByCat[k]; });
-  const adminOpex = ['Administrative Personnel Costs','Insurance Cost','Compliance Cost',
-                     'Professional Fees','Directors fees','Office Support expenses',
-                     'Provision for Bad Debt']
-                     .reduce((s,k) => s + (sc.opex[k]||0), 0);
+  const ADMIN_KEYS = ['Administrative Personnel Costs','Insurance Cost','Compliance Cost',
+                      'Professional Fees','Directors fees','Office Support expenses',
+                      'Provision for Bad Debt'];
+  const adminOpex = ADMIN_KEYS.reduce((s,k) => s + (sc.opex[k]||0), 0);
   const variableOpex = Object.entries(sc.opex)
-                         .filter(([k]) => !['Administrative Personnel Costs','Insurance Cost',
-                           'Compliance Cost','Professional Fees','Directors fees',
-                           'Office Support expenses','Provision for Bad Debt'].includes(k))
+                         .filter(([k]) => !ADMIN_KEYS.includes(k))
                          .reduce((s,[,v]) => s+v, 0);
 
-  // Steps: [label, delta, is_total]
+  // Tooltip breakdowns (zero items filtered out)
+  const pctRev = v => sc.totalRev > 0 ? ` (${(v/sc.totalRev*100).toFixed(1)}% rev)` : '';
+  const adminBreakdown = [
+    ['Admin Personnel', sc.opex['Administrative Personnel Costs']||0],
+    ['Insurance',       sc.opex['Insurance Cost']||0],
+    ['Compliance',      sc.opex['Compliance Cost']||0],
+    ['Prof. Fees',      sc.opex['Professional Fees']||0],
+    ['Directors',       sc.opex['Directors fees']||0],
+    ['Office Support',  sc.opex['Office Support expenses']||0],
+    ['Bad Debt',        sc.opex['Provision for Bad Debt']||0],
+  ].filter(([,v]) => v !== 0);
+  const otherBreakdown = [
+    ['Rent (fixed)',      sc.opex['Rent and repairs (fixed)']||0],
+    ['Compute (fixed)',   sc.opex['Compute and SW (fixed)']||0],
+    ['Equipment (fixed)', sc.opex['Equipment costs (fixed)']||0],
+    ['Staff (fixed)',     sc.opex['Direct staff costs (fixed)']||0],
+    ['Marketing (fixed)', sc.opex['Marketing and advertisement']||0],
+    ['Academics (fixed)', sc.opex['Academics - other (fixed)']||0],
+  ].filter(([,v]) => v !== 0);
+
+  // Steps: [label, delta, is_total, breakdown|null]
   const steps = [
-    ['Revenue',              sc.totalRev,  true],
-    ['− Staff',              -cogsTotal['Direct staff costs'], false],
-    ['− Rent',               -cogsTotal['Rent and repairs'],   false],
-    ['− Equipment',          -cogsTotal['Equipment costs'],    false],
-    ['− Compute/SW',         -cogsTotal['Compute and SW'],     false],
-    ['− Accreditation',      -cogsTotal["Students' accreditation"], false],
-    ['− Academics Other',    -cogsTotal['Other - academics'],  false],
-    ['− Marketing',          -cogsTotal['Marketing and advertisements'], false],
-    ['Gross Profit',         sc.totalGP,   true],
-    ['− Admin OpEx',         -adminOpex,   false],
-    ['− Other Fixed OpEx',   -variableOpex,false],
-    ['Operating Profit',     sc.opProfit,  true],
+    ['Revenue',              sc.totalRev,  true,  null],
+    ['− Staff',              -cogsTotal['Direct staff costs'], false, null],
+    ['− Rent',               -cogsTotal['Rent and repairs'],   false, null],
+    ['− Equipment',          -cogsTotal['Equipment costs'],    false, null],
+    ['− Compute/SW',         -cogsTotal['Compute and SW'],     false, null],
+    ['− Accreditation',      -cogsTotal["Students' accreditation"], false, null],
+    ['− Academics Other',    -cogsTotal['Other - academics'],  false, null],
+    ['− Marketing',          -cogsTotal['Marketing and advertisements'], false, null],
+    ['Gross Profit',         sc.totalGP,   true,  null],
+    ['− Admin OpEx',         -adminOpex,   false, adminBreakdown],
+    ['− Other Fixed OpEx',   -variableOpex,false, otherBreakdown],
+    ['Operating Profit',     sc.opProfit,  true,  null],
   ];
 
   // Compute stacked positions
   let running = 0;
-  const bars = steps.map(([label, delta, isTotal]) => {
+  const bars = steps.map(([label, delta, isTotal, breakdown]) => {
     if (isTotal) {
       running = delta;
-      return { label, base: 0, value: delta, total: true };
+      return { label, base: 0, value: delta, total: true, breakdown: null };
     } else {
       const base = delta >= 0 ? running : running + delta;
       const abs = Math.abs(delta);
       running += delta;
-      return { label, base, value: abs, delta, total: false };
+      return { label, base, value: abs, delta, total: false, breakdown };
     }
   });
 
@@ -1550,7 +1568,15 @@ function renderWaterfall() {
               const b = bars[c.dataIndex];
               if (c.dataset.label === 'Base') return null;
               if (b.total) return `${b.label}: ${fmtKSH(b.value)} KSH`;
-              return `${b.label}: ${fmtSigned(b.delta)} KSH`;
+              const main = `${b.label}: ${fmtSigned(b.delta)} KSH`;
+              if (!b.breakdown || !b.breakdown.length) return main;
+              return [
+                main,
+                '─────────────────────',
+                ...b.breakdown.map(([name, v]) =>
+                  `  ${name}: ${fmtKSH(v)} KSH${pctRev(v)}`
+                )
+              ];
             }
           },
           filter: item => item.dataset.label !== 'Base'
