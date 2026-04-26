@@ -1,6 +1,9 @@
 # Excel model — confidential, never commit
 model.xlsx
 
+# Model skeleton — reference only, not for version control
+model_frame.xlsx
+
 # Extracted data — contains real financials
 data.json
 
