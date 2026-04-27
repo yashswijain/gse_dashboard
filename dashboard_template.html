@@ -358,7 +358,7 @@
     background: var(--bg-panel); border: 1px solid var(--rule-strong);
     overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.28);
   }
-  .p2p-kpi-strip { display: grid; grid-template-columns: repeat(2, 1fr); border-bottom: 1px solid var(--rule); }
+  .p2p-kpi-strip { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--rule); }
   .p2p-sliders-area { padding: 16px 20px 8px; }
   .p2p-sliders-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; margin-top: 14px; }
   .p2p-slider-item { display: flex; flex-direction: column; gap: 4px; }
@@ -1739,24 +1739,29 @@ function closeP2PModal() {
 }
 
 function computeP2PResult() {
-  let totalRev = 0, totalCogs = 0;
+  let totalRev = 0, totalCogs = 0, totalEnroll = 0, baseEnroll = 0;
   for (const d of p2pState.baseData) {
-    totalRev  += d.baseRevPer * p2pState.enrollments[d.name];
-    totalCogs += d.cogs;
+    totalRev    += d.baseRevPer * p2pState.enrollments[d.name];
+    totalCogs   += d.cogs;
+    totalEnroll += p2pState.enrollments[d.name];
+    baseEnroll  += d.baseEnroll;
   }
   const gp       = totalRev - totalCogs;
   const margin   = totalRev > 0 ? gp / totalRev : 0;
   const opProfit = gp - p2pState.rawOpexTotal;
-  return { totalRev, gp, margin, opProfit };
+  return { totalRev, gp, margin, opProfit, totalEnroll, baseEnroll };
 }
 
 function updateP2PDisplay() {
   const r = computeP2PResult();
-  const marginCls  = r.margin  < 0 ? 'neg' : r.margin  < 0.2 ? 'warn' : 'pos';
+  const marginCls  = r.margin   < 0 ? 'neg' : r.margin  < 0.2 ? 'warn' : 'pos';
   const profitCls  = r.opProfit < 0 ? 'neg' : 'pos';
+  const enrollDelta = r.totalEnroll - r.baseEnroll;
+  const enrollCls   = enrollDelta > 0 ? 'pos' : enrollDelta < 0 ? 'neg' : '';
   document.getElementById('p2pKpiStrip').innerHTML = [
-    { label: 'GP Margin',       val: fmtPct(r.margin),          cls: marginCls },
+    { label: 'GP Margin',        val: fmtPct(r.margin),             cls: marginCls },
     { label: 'Operating Profit', val: fmtKSH(r.opProfit) + ' KSH', cls: profitCls },
+    { label: 'Total Enrollment', val: `${fmtInt.format(r.totalEnroll)} <span style="font-size:13px;color:var(--ink-mute)">/ ${fmtInt.format(r.baseEnroll)}</span>`, cls: enrollCls },
   ].map(k => `<div class="modal-kpi"><div class="label">${k.label}</div><div class="val ${k.cls}">${k.val}</div></div>`).join('');
 }
 
