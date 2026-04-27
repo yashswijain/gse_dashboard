@@ -748,9 +748,10 @@ const OPEX_SHORT = {
 // Dashboard state
 const state = {
   scenario: 'In-Person',
-  globalMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
-  hybridMult: Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
-  opexMult:   Object.fromEntries(OPEX_KEYS.map(k => [k, 1.0])),
+  globalMult:   Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  hybridMult:   Object.fromEntries(COST_KEYS.map(k => [k, 1.0])),
+  s01OpexMult:  Object.fromEntries(OPEX_KEYS.map(k => [k, 1.0])),
+  s03OpexMult:  Object.fromEntries(OPEX_KEYS.map(k => [k, 1.0])),
 };
 
 // ------------- NUMBER FORMATTERS -------------
@@ -780,19 +781,13 @@ function computeProgram(p, mult) {
   const revPer = p.enrollment > 0 ? rev/p.enrollment : 0;
   const gpPer = p.enrollment > 0 ? gp/p.enrollment : 0;
   const cogsPer = p.enrollment > 0 ? cogs/p.enrollment : 0;
-  // Breakeven via contribution-margin method:
-  // Semi-fixed: Staff, Rent, Equipment, Compute, Academics
-  // Variable (per-student): Accreditation, Marketing
-  const FIXED_KEYS = ['Direct staff costs','Rent and repairs','Equipment costs','Compute and SW','Other - academics'];
-  const VAR_KEYS   = ["Students' accreditation",'Marketing and advertisements'];
-  const fixedTotal = FIXED_KEYS.reduce((s,k) => s + cogsByCat[k], 0);
-  const varPer = p.enrollment > 0 ? VAR_KEYS.reduce((s,k) => s + cogsByCat[k], 0) / p.enrollment : 0;
-  const contribPer = revPer - varPer;
-  const breakeven = contribPer > 0 ? Math.ceil(fixedTotal / contribPer) : Infinity;
+  // Breakeven: all COGS are fixed totals (not per-student).
+  // Revenue = revPer × enrollment, so GP = 0 when enrollment = cogs / revPer.
+  const breakeven = revPer > 0 ? Math.ceil(cogs / revPer) : Infinity;
   const safety = breakeven > 0 && breakeven !== Infinity ? p.enrollment / breakeven : null;
 
   return { p, rev, cogs, cogsByCat, gp, margin, revPer, gpPer, cogsPer,
-           fixedTotal, varPer, contribPer, breakeven, safety };
+           breakeven, safety };
 }
 
 function computeScenario(scenarioKey, globalMult, hybridMultOverride=null, opexMult=null) {
@@ -921,22 +916,7 @@ function buildHybridSliders() {
 }
 
 // Syncs state + ALL opex slider UI instances (Section 01 + Section 03), then re-renders
-function setOpexMult(key, v, skipRender=false) {
-  state.opexMult[key] = v;
-  const delta = (v - 1) * 100;
-  const text = (delta >= 0 ? '+' : '') + delta.toFixed(0) + '%';
-  document.querySelectorAll(`[data-show-ox="${key}"]`).forEach(span => {
-    span.textContent = text;
-    span.classList.remove('pos', 'neg');
-    if (delta > 0) span.classList.add('pos'); else if (delta < 0) span.classList.add('neg');
-  });
-  document.querySelectorAll(`input[data-slider="opex"][data-key="${key}"]`).forEach(inp => {
-    inp.value = Math.round(v * 100);
-  });
-  if (!skipRender) renderAll();
-}
-
-function buildOpexSliders(hostId) {
+function buildOpexSliders(hostId, multObj, renderFn) {
   const host = document.getElementById(hostId);
   if (!host) return;
   host.innerHTML = '';
@@ -945,21 +925,25 @@ function buildOpexSliders(hostId) {
     div.className = 'slider-item';
     div.innerHTML = `
       <span class="name">${OPEX_SHORT[k]}</span>
-      <input type="range" min="0" max="200" value="100" data-key="${k}" data-slider="opex">
-      <div class="val"><span>${OPEX_SHORT[k]}</span><span class="pct" data-show-ox="${k}">0%</span></div>
+      <input type="range" min="0" max="200" value="100" data-key="${k}">
+      <div class="val"><span>${OPEX_SHORT[k]}</span><span class="pct" data-show="${k}">0%</span></div>
     `;
     host.appendChild(div);
   });
   host.querySelectorAll('input[type=range]').forEach(inp => {
     inp.addEventListener('input', e => {
-      setOpexMult(e.target.dataset.key, parseInt(e.target.value) / 100);
+      const key = e.target.dataset.key;
+      const v = parseInt(e.target.value) / 100;
+      multObj[key] = v;
+      updatePctLabel(hostId, key, v);
+      renderFn();
     });
   });
 }
 
 // ------------- RENDER: KPI TILES -------------
 function renderKPIs() {
-  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.s01OpexMult);
   if (!sc) return;
   const grid = document.getElementById('kpiGrid');
   const revPerStudent = sc.totalEnroll > 0 ? sc.totalRev / sc.totalEnroll : 0;
@@ -988,7 +972,7 @@ function renderKPIs() {
 
 // ------------- RENDER: PROGRAM CARDS (Section 02) -------------
 function renderCards() {
-  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  const sc = computeScenario(state.scenario, BASE_MULT, null, null);
   if (!sc) return;
   const rows = sc.rows.map(r => ({
     name: r.p.name, type: r.p.type,
@@ -1046,7 +1030,7 @@ let modalBaseRow = null;
 let modalLocalState = null;
 
 function openCardModal(progName, cardEl) {
-  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  const sc = computeScenario(state.scenario, BASE_MULT, null, null);
   const row = sc.rows.find(r => r.p.name === progName);
   if (!row) return;
 
@@ -1200,9 +1184,9 @@ document.getElementById('resetModalSliders').addEventListener('click', () => {
 // ------------- MODAL: COMPUTE & DISPLAY -------------
 function computeModalResult() {
   const row = modalBaseRow;
-  // Base revenue per student already reflects current global scenario
+  // Base revenue per student from raw model data (no global mults applied)
   const baseRevPer = row.p.enrollment > 0 ? row.rev / row.p.enrollment : 0;
-  // Base COGS lines already reflect global mults — use cogsByCat as baseline
+  // Base COGS from raw model data — modal COGS sliders are applied in computeProgram
   const adjCogsLines = Object.fromEntries(COST_KEYS.map(k => [k, row.cogsByCat[k]]));
   const synth = {
     ...row.p,
@@ -1364,7 +1348,7 @@ function renderCompareSection() {
   // In-Person is always baseline — no sliders affect it in this section
   const ipSC = computeScenario('In-Person', BASE_MULT, null, null);
   // Hybrid picks up hybridMult + opexMult only
-  const hySC = computeScenario('Hybrid', BASE_MULT, state.hybridMult, state.opexMult);
+  const hySC = computeScenario('Hybrid', BASE_MULT, state.hybridMult, state.s03OpexMult);
   if (!ipSC || !hySC) return;
 
   // Compare KPIs
@@ -1470,7 +1454,7 @@ function renderCompareSection() {
 // ------------- RENDER: WATERFALL -------------
 let waterfallChart = null;
 function renderWaterfall() {
-  const sc = computeScenario(state.scenario, state.globalMult, null, state.opexMult);
+  const sc = computeScenario(state.scenario, state.globalMult, null, state.s01OpexMult);
   if (!sc) return;
   // Build waterfall: Revenue → COGS categories → GP → OpEx → Op Profit
   const cogsTotal = Object.fromEntries(COST_KEYS.map(k => [k, 0]));
@@ -1642,7 +1626,11 @@ document.getElementById('resetGlobal').addEventListener('click', () => {
   document.querySelectorAll('#globalSliders .pct').forEach(span => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
-  OPEX_KEYS.forEach(k => setOpexMult(k, 1.0, true));
+  OPEX_KEYS.forEach(k => { state.s01OpexMult[k] = 1.0; });
+  document.querySelectorAll('#opexSliders input[type=range]').forEach(inp => inp.value = 100);
+  document.querySelectorAll('#opexSliders [data-show]').forEach(span => {
+    span.textContent = '0%'; span.classList.remove('pos','neg');
+  });
   renderAll();
 });
 
@@ -1652,14 +1640,18 @@ document.getElementById('resetHybrid').addEventListener('click', () => {
   document.querySelectorAll('#hybridSliders [data-show-h]').forEach(span => {
     span.textContent = '0%'; span.classList.remove('pos','neg');
   });
-  OPEX_KEYS.forEach(k => setOpexMult(k, 1.0, true));
+  OPEX_KEYS.forEach(k => { state.s03OpexMult[k] = 1.0; });
+  document.querySelectorAll('#opexSliders3 input[type=range]').forEach(inp => inp.value = 100);
+  document.querySelectorAll('#opexSliders3 [data-show]').forEach(span => {
+    span.textContent = '0%'; span.classList.remove('pos','neg');
+  });
   renderAll();
 });
 
 // Init
 buildGlobalSliders();
-buildOpexSliders('opexSliders');
-buildOpexSliders('opexSliders3');
+buildOpexSliders('opexSliders',  state.s01OpexMult, () => { renderKPIs(); renderWaterfall(); });
+buildOpexSliders('opexSliders3', state.s03OpexMult, renderCompareSection);
 buildHybridSliders();
 renderAll();
 
