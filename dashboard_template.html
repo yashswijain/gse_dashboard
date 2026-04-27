@@ -319,6 +319,73 @@
   }
   .modal-reset-btn:hover { background: var(--ink); color: var(--bg); }
 
+  /* ============ PATH TO PROFITABILITY ============ */
+  .p2p-section { margin-top: 40px; }
+  .p2p-trigger-card {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 24px; background: var(--bg-panel);
+    border: 1px solid var(--rule-strong); border-left: 4px solid var(--accent);
+    cursor: pointer; transition: box-shadow 0.15s, transform 0.15s;
+    max-width: 420px;
+  }
+  .p2p-trigger-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
+  .p2p-trigger-icon {
+    font-family: 'IBM Plex Mono', monospace; font-size: 28px;
+    color: var(--accent); line-height: 1; flex-shrink: 0;
+  }
+  .p2p-trigger-text .title {
+    font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px;
+    letter-spacing: -0.01em; margin-bottom: 3px;
+  }
+  .p2p-trigger-text .sub {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.06em;
+  }
+  .p2p-trigger-arrow {
+    margin-left: auto; font-size: 18px; color: var(--ink-mute);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .p2p-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(17,17,17,0.5); z-index: 200; backdrop-filter: blur(3px);
+  }
+  .p2p-modal-overlay.active { display: block; }
+  .p2p-modal-box {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 760px; max-width: 95vw; max-height: 90vh;
+    background: var(--bg-panel); border: 1px solid var(--rule-strong);
+    overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+  }
+  .p2p-kpi-strip { display: grid; grid-template-columns: repeat(2, 1fr); border-bottom: 1px solid var(--rule); }
+  .p2p-sliders-area { padding: 16px 20px 8px; }
+  .p2p-sliders-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; margin-top: 14px; }
+  .p2p-slider-item { display: flex; flex-direction: column; gap: 4px; }
+  .p2p-slider-item .name {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-soft); font-weight: 600; font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .p2p-slider-item input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
+    background: var(--ink); outline: none; cursor: pointer;
+  }
+  .p2p-slider-item input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px; background: var(--accent); border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .p2p-slider-item input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; background: var(--accent); border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .p2p-slider-item .val {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    color: var(--ink); display: flex; justify-content: flex-end;
+  }
+  .p2p-modal-footer {
+    padding: 12px 20px 20px; display: flex; gap: 10px; align-items: center;
+  }
+
   /* ============ MODAL SPLIT: COST + GAUGE ============ */
   .modal-split-area {
     display: grid; grid-template-columns: 1fr 1fr;
@@ -598,7 +665,37 @@
       </div>
       <div class="cards-row" id="cardsRed"></div>
     </div>
+
+    <div class="p2p-section">
+      <div class="p2p-trigger-card" id="openP2PModal" role="button" tabindex="0" aria-label="Open Path to Profitability">
+        <div class="p2p-trigger-icon">→</div>
+        <div class="p2p-trigger-text">
+          <div class="title">Path to Profitability</div>
+          <div class="sub">Adjust enrollment across all 14 programs · see aggregate impact</div>
+        </div>
+        <div class="p2p-trigger-arrow">↗</div>
+      </div>
+    </div>
   </section>
+
+  <!-- P2P MODAL -->
+  <div class="p2p-modal-overlay" id="p2pModalOverlay">
+    <div class="p2p-modal-box" role="dialog" aria-modal="true" aria-label="Path to Profitability">
+      <button class="modal-close-btn" id="closeP2PModal" aria-label="Close">✕</button>
+      <div class="modal-header">
+        <span class="modal-prog-name">Path to Profitability</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-mute);">In-Person · adjust enrollment per program</span>
+      </div>
+      <div class="p2p-kpi-strip" id="p2pKpiStrip"></div>
+      <div class="p2p-sliders-area">
+        <div class="modal-sliders-title">Enrollment by Program</div>
+        <div class="p2p-sliders-grid" id="p2pSlidersGrid"></div>
+      </div>
+      <div class="p2p-modal-footer">
+        <button class="modal-reset-btn" id="resetP2P">Reset to Model Values</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ SECTION 03: COMPARISON ============ -->
   <section>
@@ -1609,6 +1706,99 @@ function renderWaterfall() {
     }]
   });
 }
+
+// ------------- PATH TO PROFITABILITY -------------
+let p2pState = null;
+
+function openP2PModal() {
+  const sc = computeScenario('In-Person', BASE_MULT, null, null);
+  if (!sc) return;
+
+  // Raw OpEx total — sum directly from extracted data, no multipliers
+  const rawOpex = RAW_DATA['In-Person'].opex;
+  const rawOpexTotal = Object.values(rawOpex).reduce((s, v) => s + v, 0);
+
+  p2pState = {
+    baseData: sc.rows.map(r => ({
+      name: r.p.name,
+      baseRevPer: r.p.enrollment > 0 ? r.rev / r.p.enrollment : 0,
+      cogs: r.cogs,
+      baseEnroll: r.p.enrollment,
+    })),
+    enrollments: Object.fromEntries(sc.rows.map(r => [r.p.name, r.p.enrollment])),
+    rawOpexTotal,
+  };
+
+  buildP2PSliders();
+  updateP2PDisplay();
+  document.getElementById('p2pModalOverlay').classList.add('active');
+}
+
+function closeP2PModal() {
+  document.getElementById('p2pModalOverlay').classList.remove('active');
+}
+
+function computeP2PResult() {
+  let totalRev = 0, totalCogs = 0;
+  for (const d of p2pState.baseData) {
+    totalRev  += d.baseRevPer * p2pState.enrollments[d.name];
+    totalCogs += d.cogs;
+  }
+  const gp       = totalRev - totalCogs;
+  const margin   = totalRev > 0 ? gp / totalRev : 0;
+  const opProfit = gp - p2pState.rawOpexTotal;
+  return { totalRev, gp, margin, opProfit };
+}
+
+function updateP2PDisplay() {
+  const r = computeP2PResult();
+  const marginCls  = r.margin  < 0 ? 'neg' : r.margin  < 0.2 ? 'warn' : 'pos';
+  const profitCls  = r.opProfit < 0 ? 'neg' : 'pos';
+  document.getElementById('p2pKpiStrip').innerHTML = [
+    { label: 'GP Margin',       val: fmtPct(r.margin),          cls: marginCls },
+    { label: 'Operating Profit', val: fmtKSH(r.opProfit) + ' KSH', cls: profitCls },
+  ].map(k => `<div class="modal-kpi"><div class="label">${k.label}</div><div class="val ${k.cls}">${k.val}</div></div>`).join('');
+}
+
+function buildP2PSliders() {
+  const grid = document.getElementById('p2pSlidersGrid');
+  grid.innerHTML = '';
+  for (const d of p2pState.baseData) {
+    const max  = Math.max(d.baseEnroll * 3, 50);
+    const shortName = d.name.replace(/^Program - /, '').replace(/ (Diploma|Certificate)$/, '');
+    const div  = document.createElement('div');
+    div.className = 'p2p-slider-item';
+    div.innerHTML = `
+      <span class="name" title="${shortName}">${shortName}</span>
+      <input type="range" min="1" max="${max}" step="1" value="${d.baseEnroll}" data-prog="${d.name}">
+      <div class="val"><span id="p2pval_${d.name.replace(/\W+/g,'_')}">${d.baseEnroll} students</span></div>
+    `;
+    div.querySelector('input').addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      p2pState.enrollments[d.name] = v;
+      document.getElementById('p2pval_' + d.name.replace(/\W+/g,'_')).textContent = v + ' students';
+      updateP2PDisplay();
+    });
+    grid.appendChild(div);
+  }
+}
+
+function resetP2PSliders() {
+  for (const d of p2pState.baseData) {
+    p2pState.enrollments[d.name] = d.baseEnroll;
+    const inp = document.querySelector(`#p2pSlidersGrid input[data-prog="${d.name}"]`);
+    if (inp) inp.value = d.baseEnroll;
+    const lbl = document.getElementById('p2pval_' + d.name.replace(/\W+/g,'_'));
+    if (lbl) lbl.textContent = d.baseEnroll + ' students';
+  }
+  updateP2PDisplay();
+}
+
+document.getElementById('openP2PModal').addEventListener('click', openP2PModal);
+document.getElementById('openP2PModal').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openP2PModal(); });
+document.getElementById('closeP2PModal').addEventListener('click', closeP2PModal);
+document.getElementById('resetP2P').addEventListener('click', resetP2PSliders);
+document.getElementById('p2pModalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeP2PModal(); });
 
 // ------------- ORCHESTRATION -------------
 function renderAll() {
